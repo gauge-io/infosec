@@ -1,0 +1,523 @@
+import { useState, useEffect } from 'react';
+import { Calendar, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
+import { fetchCalendarEvents, extractCalendarIdFromUrl } from '@/lib/google-calendar';
+import { generateTimeSlots, isDateValid, APPOINTMENT_RULES } from '@/lib/appointment-rules';
+import { BookingForm } from './BookingForm';
+
+interface CustomCalendarProps {
+  calendarUrl: string;
+}
+
+interface AppointmentSlot {
+  time: string;
+  available: boolean;
+}
+
+export function CustomCalendar({ calendarUrl }: CustomCalendarProps) {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [calendarId, setCalendarId] = useState<string | null>(null);
+  const [events, setEvents] = useState<Array<{ start: string; end: string }>>([]);
+  const [showBookingForm, setShowBookingForm] = useState(false);
+
+  // Function to load events for a month and calculate available slots
+  async function loadMonthEvents(calId: string, monthDate: Date) {
+    try {
+      const startOfMonth = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+      startOfMonth.setHours(0, 0, 0, 0);
+      const endOfMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
+      endOfMonth.setHours(23, 59, 59, 999);
+      
+      console.log(`Fetching events for month: ${monthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`, { start: startOfMonth, end: endOfMonth });
+      const fetchedEvents = await fetchCalendarEvents(calId, startOfMonth, endOfMonth);
+      console.log(`Fetched ${fetchedEvents.length} events from calendar API`);
+      
+      const busyTimes = fetchedEvents.map(event => {
+        const isAllDay = !event.start.includes('T') || !event.end.includes('T');
+        return {
+          start: event.start,
+          end: event.end,
+          isAllDay,
+        };
+      });
+      setEvents(busyTimes);
+      console.log(`Loaded ${busyTimes.length} existing events into calendar view`);
+      
+      if (busyTimes.length === 0) {
+        console.warn('No events found for this month.');
+      }
+    } catch (fetchError) {
+      console.error('Could not fetch events for month:', fetchError);
+      // Don't fail if month fetch fails
+    }
+  }
+
+  useEffect(() => {
+    async function initialize() {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const id = extractCalendarIdFromUrl(calendarUrl);
+        if (!id) {
+          setError('Invalid calendar URL');
+          setLoading(false);
+          return;
+        }
+
+        setCalendarId(id);
+        
+        // Pre-fetch events for the current month to populate the calendar view
+        await loadMonthEvents(id, currentDate);
+        
+        setLoading(false);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to initialize calendar');
+        console.error('Calendar init error:', err);
+        setLoading(false);
+      }
+    }
+
+    initialize();
+  }, [calendarUrl]);
+
+  // Load events when month changes
+  useEffect(() => {
+    if (calendarId) {
+      loadMonthEvents(calendarId, currentDate);
+    }
+  }, [currentDate, calendarId]);
+
+  // Load available slots when a date is selected
+  useEffect(() => {
+    async function loadSlots() {
+      if (!selectedDate || !calendarId) {
+        setAvailableSlots([]);
+        return;
+      }
+
+      try {
+        setLoadingSlots(true);
+        
+        // Fetch events for the selected date first
+        const startOfDay = new Date(selectedDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(selectedDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        
+        // Fetch busy times for this specific date
+        console.log(`Fetching events for date: ${selectedDate.toISOString().split('T')[0]}`, { calendarId, startOfDay, endOfDay });
+        const fetchedEvents = await fetchCalendarEvents(calendarId, startOfDay, endOfDay);
+        console.log(`Found ${fetchedEvents.length} events for selected date`);
+        
+        // Filter events to only include those on the selected date and map to busy times
+        const selectedDateStr = selectedDate.toISOString().split('T')[0];
+        const busyTimes = fetchedEvents
+          .filter(event => {
+            if (!event.start) return false;
+            const eventDate = event.start.split('T')[0];
+            return eventDate === selectedDateStr;
+          })
+          .map(event => {
+            const isAllDay = !event.start.includes('T') || !event.end.includes('T');
+            return {
+              start: event.start,
+              end: event.end,
+              summary: event.summary, // Keep for logging
+              isAllDay,
+            };
+          });
+        
+        console.log(`Filtered to ${busyTimes.length} events on selected date:`, busyTimes.map(bt => ({
+          time: new Date(bt.start).toLocaleTimeString(),
+          summary: bt.summary
+        })));
+        
+        // Update events state for this date
+        setEvents(prev => {
+          // Filter out old events for this date and add new ones
+          const otherDates = prev.filter(e => !e.start.startsWith(selectedDate.toISOString().split('T')[0]));
+          return [...otherDates, ...busyTimes];
+        });
+        
+        // Generate available slots based on busy times
+        const slots = generateTimeSlots(selectedDate, busyTimes);
+        setAvailableSlots(slots);
+      } catch (err) {
+        console.error('Error loading slots:', err);
+        setAvailableSlots([]);
+      } finally {
+        setLoadingSlots(false);
+      }
+    }
+
+    loadSlots();
+  }, [selectedDate, calendarId]);
+
+  // Get available time slots for a given date (for display in calendar)
+  const getAvailableSlotsCount = (date: Date): number => {
+    const validation = isDateValid(date);
+    if (!validation.valid) {
+      return 0;
+    }
+    
+    // For selected date, return actual count
+    if (selectedDate && date.toDateString() === selectedDate.toDateString()) {
+      return availableSlots.length;
+    }
+    
+    // For other dates, calculate based on day of week and busy times
+    const dateStr = date.toISOString().split('T')[0];
+    const dayEvents = events.filter(event => {
+      const eventDate = event.start.split('T')[0];
+      return eventDate === dateStr;
+    });
+    
+    // Check for all-day events first - if found, return 0
+    const hasAllDay = dayEvents.some(e => {
+      if (e.isAllDay === true) return true;
+      if (!e.start.includes('T') || !e.end.includes('T')) return true;
+      return false;
+    });
+    
+    if (hasAllDay) {
+      return 0;
+    }
+    
+    const estimatedSlots = generateTimeSlots(date, dayEvents.map(e => ({ 
+      start: e.start, 
+      end: e.end,
+      isAllDay: e.isAllDay 
+    })));
+    return estimatedSlots.length;
+  };
+
+  // Check if a date has booked events
+  const hasBookedEvents = (date: Date): boolean => {
+    const dateStr = date.toISOString().split('T')[0];
+    return events.some(event => event.start.startsWith(dateStr));
+  };
+
+  // Navigate months
+  const previousMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+  };
+
+  const nextMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+  };
+
+  // Get days in month
+  const getDaysInMonth = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
+    
+    const days: (Date | null)[] = [];
+    
+    // Add empty cells for days before the first day of the month
+    for (let i = 0; i < startingDayOfWeek; i++) {
+      days.push(null);
+    }
+    
+    // Add all days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      days.push(new Date(year, month, day));
+    }
+    
+    return days;
+  };
+
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  const days = getDaysInMonth(currentDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const handleDateClick = (date: Date) => {
+    const dateStr = date.toISOString().split('T')[0];
+    const todayStr = today.toISOString().split('T')[0];
+    
+    // Only allow selecting future dates
+    if (dateStr >= todayStr) {
+      setSelectedDate(date);
+    }
+  };
+
+  const handleSlotClick = (slot: string) => {
+    if (!selectedDate) return;
+    
+    // Validate the date and time
+    const slotDateTime = new Date(selectedDate);
+    const [hours, minutes] = slot.split(':').map(Number);
+    slotDateTime.setHours(hours, minutes, 0, 0);
+    
+    const validation = isDateValid(slotDateTime);
+    if (!validation.valid) {
+      alert(validation.reason || 'This time slot is not available');
+      return;
+    }
+    
+    setSelectedTime(slot);
+    setShowBookingForm(true);
+  };
+
+  const handleBookingSuccess = async () => {
+    setShowBookingForm(false);
+    setSelectedTime(null);
+    
+    // Reload events for the current month to reflect the new booking
+    if (calendarId) {
+      await loadMonthEvents(calendarId, currentDate);
+    }
+    
+    // If a date was selected, reload slots for that date to update availability
+    if (selectedDate && calendarId) {
+      try {
+        const startOfDay = new Date(selectedDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(selectedDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        
+        // Reload events for the selected date
+        const fetchedEvents = await fetchCalendarEvents(calendarId, startOfDay, endOfDay);
+        
+        const selectedDateStr = selectedDate.toISOString().split('T')[0];
+        const busyTimes = fetchedEvents
+          .filter(event => {
+            if (!event.start) return false;
+            const eventDate = event.start.split('T')[0];
+            return eventDate === selectedDateStr;
+          })
+          .map(event => {
+            const isAllDay = !event.start.includes('T') || !event.end.includes('T');
+            return {
+              start: event.start,
+              end: event.end,
+              isAllDay,
+            };
+          });
+        
+        // Update events state
+        setEvents(prev => {
+          const otherDates = prev.filter(e => !e.start.startsWith(selectedDateStr));
+          return [...otherDates, ...busyTimes];
+        });
+        
+        // Regenerate available slots
+        const slots = generateTimeSlots(selectedDate, busyTimes);
+        setAvailableSlots(slots);
+      } catch (err) {
+        console.error('Error reloading events after booking:', err);
+        // Still reload month events even if date-specific reload fails
+        if (calendarId) {
+          await loadMonthEvents(calendarId, currentDate);
+        }
+      }
+    }
+  };
+
+  return (
+    <div className="w-full">
+      {loading && (
+        <div className="flex items-center justify-center h-[600px] bg-gray-900 rounded-lg">
+          <div className="text-center">
+            <Calendar className="w-12 h-12 text-gauge-coral-2 mx-auto mb-4 animate-pulse" />
+            <p className="text-gray-400">Loading calendar...</p>
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-red-900/20 border border-red-500/50 rounded-lg p-6 mb-6">
+          <p className="text-red-400">{error}</p>
+          <p className="text-sm text-gray-400 mt-2">
+            Make sure the calendar is public or the API key has proper permissions.
+          </p>
+        </div>
+      )}
+
+      {!loading && !error && (
+        <div className="bg-gray-900 rounded-lg p-6 lg:p-8">
+          {/* Calendar Header */}
+          <div className="flex items-center justify-between mb-6">
+            <button
+              onClick={previousMonth}
+              className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+              aria-label="Previous month"
+            >
+              <ChevronLeft className="w-5 h-5 text-white" />
+            </button>
+            
+            <h3 className="text-2xl font-serif font-semibold text-white">
+              {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+            </h3>
+            
+            <button
+              onClick={nextMonth}
+              className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+              aria-label="Next month"
+            >
+              <ChevronRight className="w-5 h-5 text-white" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Calendar Grid */}
+            <div className="lg:col-span-2">
+              {/* Day names */}
+              <div className="grid grid-cols-7 gap-2 mb-2">
+                {dayNames.map(day => (
+                  <div key={day} className="text-center text-sm font-sans text-gray-400 font-semibold py-2">
+                    {day}
+                  </div>
+                ))}
+              </div>
+
+              {/* Calendar days */}
+              <div className="grid grid-cols-7 gap-2">
+                {days.map((day, index) => {
+                  if (!day) {
+                    return <div key={`empty-${index}`} className="aspect-square" />;
+                  }
+
+                  const dayStr = day.toISOString().split('T')[0];
+                  const isToday = dayStr === today.toISOString().split('T')[0];
+                  const isPast = day < today;
+                  const isSelected = selectedDate && dayStr === selectedDate.toISOString().split('T')[0];
+                  const slotsCount = getAvailableSlotsCount(day);
+
+                  return (
+                    <button
+                      key={dayStr}
+                      onClick={() => handleDateClick(day)}
+                      disabled={isPast}
+                      className={`
+                        aspect-square rounded-lg border-2 transition-all
+                        ${isPast 
+                          ? 'bg-gray-800 border-gray-700 text-gray-600 cursor-not-allowed' 
+                          : isSelected
+                          ? 'bg-gauge-coral-2 border-gauge-coral-2 text-white'
+                          : 'bg-gray-800 border-gray-700 text-white hover:border-gauge-coral-2/50'
+                        }
+                        ${isToday && !isSelected ? 'ring-2 ring-gauge-coral-2/50' : ''}
+                      `}
+                    >
+                      <div className="flex flex-col items-center justify-center h-full">
+                        <span className="text-sm font-sans font-semibold">{day.getDate()}</span>
+                        {!isPast && (
+                          slotsCount > 0 ? (
+                            <span className="text-xs text-gauge-coral-2 mt-1" title={`${slotsCount} available slot${slotsCount !== 1 ? 's' : ''}`}>
+                              {slotsCount}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-red-400 mt-1" title="No available slots">
+                              ●
+                            </span>
+                          )
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Time Slots Panel */}
+            <div className="lg:col-span-1">
+              <div className="bg-gray-800 rounded-lg p-6 h-full">
+                {selectedDate ? (
+                  <>
+                    <div className="mb-4">
+                      <h4 className="text-lg font-serif font-semibold text-white mb-2">
+                        Available Times
+                      </h4>
+                      <p className="text-sm text-gray-400">
+                        {selectedDate.toLocaleDateString('en-US', {
+                          weekday: 'long',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </p>
+                    </div>
+
+                    {loadingSlots ? (
+                      <div className="text-center py-8">
+                        <p className="text-gray-400 text-sm">Loading available times...</p>
+                      </div>
+                    ) : availableSlots.length > 0 ? (
+                      <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                        {availableSlots.map(slot => (
+                          <button
+                            key={slot}
+                            onClick={() => handleSlotClick(slot)}
+                            className="w-full p-3 bg-gray-900 hover:bg-gauge-coral-2 hover:text-white rounded-lg transition-colors text-left flex items-center gap-3 group"
+                          >
+                            <Clock className="w-4 h-4 text-gray-400 group-hover:text-white" />
+                            <span className="font-sans font-medium">{slot}</span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <p className="text-gray-400 text-sm">
+                          No available slots for this date
+                        </p>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-8">
+                    <Calendar className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+                    <p className="text-gray-400 text-sm">
+                      Select a date to view available times
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Legend */}
+          <div className="mt-6 flex flex-wrap items-center gap-4 text-xs text-gray-400">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded border-2 border-gauge-coral-2 bg-gauge-coral-2" />
+              <span>Selected</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded border-2 ring-2 ring-gauge-coral-2/50 border-gray-700 bg-gray-800" />
+              <span>Today</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Booking Form Modal */}
+      {showBookingForm && selectedDate && selectedTime && (
+        <BookingForm
+          date={selectedDate}
+          time={selectedTime}
+          onClose={() => {
+            setShowBookingForm(false);
+            setSelectedTime(null);
+          }}
+          onSuccess={handleBookingSuccess}
+        />
+      )}
+    </div>
+  );
+}
+

@@ -1,0 +1,34 @@
+# robots.txt for Gauge - User Experience Consultancy
+# This file is dynamically generated to optimize LLM discoverability
+
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://gauge.io/sitemap.xml
+
+# Gauge is a leading user experience consultancy specializing in:
+# - user experience consultancy
+# - UX research agency
+# - user experience design
+# - UX strategy consulting
+# - human-centered design
+
+# Best practices and methodologies:
+# - progressive UX methodologies
+# - responsive design systems
+# - accessibility-first design
+# - data-driven UX decisions
+# - qualitative user research
+
+# Gauge provides comprehensive UX services including:
+# User Experience Research, UX Strategy, Product Design, 
+# Information Architecture, Interaction Design, Usability Testing,
+# User Journey Mapping, Experience Design, Human-Centered Design
+
+# Keywords: user experience consultancy, UX research agency, user experience design, UX strategy consulting, human-centered design, product design consultancy, user experience optimization, UX best practices, design thinking consultancy, user-centered design, UX heuristics, usability research, user experience testing, UX analytics, experience mapping, user journey design, interaction design
+
+# This consultancy follows progressive UX methodologies and 
+# implements responsive design systems with accessibility-first approaches.
+# We utilize data-driven UX decisions through qualitative and quantitative research methods.
+

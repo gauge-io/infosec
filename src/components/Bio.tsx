@@ -1,4 +1,3 @@
-import React from 'react';
 export function Bio() {
   return <section className="py-20 px-6 lg:px-12 border-b border-gray-800">
       <div className="max-w-7xl mx-auto">

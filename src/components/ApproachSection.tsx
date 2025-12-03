@@ -1,4 +1,3 @@
-import React from 'react';
 export function ApproachSection() {
   return <section className="py-24 px-6 lg:px-12 bg-black border-b border-gray-800">
       <div className="max-w-7xl mx-auto">
@@ -29,7 +28,7 @@ export function ApproachSection() {
           </div>
 
           <div className="space-y-8">
-            <div className="border-l-2 border-gauge-coral pl-6">
+            <div className="border-l-2 border-salmon pl-6">
               <h3 className="text-xl font-serif font-semibold text-white mb-3">
                 Research-Driven Insights
               </h3>
@@ -40,7 +39,7 @@ export function ApproachSection() {
               </p>
             </div>
 
-            <div className="border-l-2 border-gauge-coral pl-6">
+            <div className="border-l-2 border-salmon pl-6">
               <h3 className="text-xl font-serif font-semibold text-white mb-3">
                 Strategic Design Thinking
               </h3>
@@ -51,7 +50,7 @@ export function ApproachSection() {
               </p>
             </div>
 
-            <div className="border-l-2 border-gauge-coral pl-6">
+            <div className="border-l-2 border-salmon pl-6">
               <h3 className="text-xl font-serif font-semibold text-white mb-3">
                 Collaborative Partnership
               </h3>

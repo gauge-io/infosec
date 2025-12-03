@@ -38,7 +38,7 @@ interface ServiceSliderProps {
 }
 
 export function ServiceSlider({ onClose, initialServiceId }: ServiceSliderProps) {
-  const { isSliderOpen: isOpen, setIsSliderOpen } = useServiceSlider();
+  const { isSliderOpen: isOpen } = useServiceSlider();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isClosing, setIsClosing] = useState(false);
 

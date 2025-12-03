@@ -1,7 +1,7 @@
 import { getFuzzyTime } from './fuzzy-time';
 
 // Ghost CMS API integration
-const GHOST_URL = 'https://gauge-user-experience-consultancy.ghost.io';
+const GHOST_URL = 'https://gauge.ghost.io';
 const GHOST_API_KEY = import.meta.env.VITE_GHOST_API_KEY || '';
 
 export interface GhostPost {
@@ -40,6 +40,7 @@ export interface GhostResponse {
 export interface BlogPost {
   id: string;
   title: string;
+  slug: string;
   description: string;
   image: string;
   url: string;
@@ -57,7 +58,9 @@ export interface BlogPost {
 export async function fetchGhostPosts(limit: number = 10): Promise<BlogPost[]> {
   try {
     // Build API URL - Ghost Content API
-    const apiUrl = `${GHOST_URL}/ghost/api/content/posts/?key=${GHOST_API_KEY}&include=tags,authors&limit=${limit}`;
+    // Only include key parameter if it's set
+    const keyParam = GHOST_API_KEY ? `key=${GHOST_API_KEY}&` : '';
+    const apiUrl = `${GHOST_URL}/ghost/api/content/posts/?${keyParam}include=tags,authors&limit=${limit}`;
     
     const response = await fetch(apiUrl);
     
@@ -84,6 +87,10 @@ export async function fetchGhostPosts(limit: number = 10): Promise<BlogPost[]> {
     return transformGhostPosts(data.posts);
   } catch (error) {
     console.error('Error fetching Ghost posts:', error);
+    // Check if it's a network/CORS error
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error('Failed to fetch from Ghost CMS. This may be a CORS issue or network error. Please check your Ghost instance configuration.');
+    }
     throw error;
   }
 }
@@ -103,6 +110,54 @@ function extractFirstSentence(text: string): string {
   
   // If no sentence ending found, take first 150 characters
   return textOnly.substring(0, 150).trim() + (textOnly.length > 150 ? '...' : '');
+}
+
+/**
+ * Fetch a single post by slug from Ghost CMS
+ */
+export async function fetchGhostPostBySlug(slug: string): Promise<BlogPost | null> {
+  try {
+    // Build API URL - Ghost Content API
+    // Only include key parameter if it's set
+    const keyParam = GHOST_API_KEY ? `key=${GHOST_API_KEY}&` : '';
+    const apiUrl = `${GHOST_URL}/ghost/api/content/posts/slug/${slug}/?${keyParam}include=tags,authors`;
+    
+    const response = await fetch(apiUrl);
+    
+    if (!response.ok) {
+      // If API key is missing or invalid, try without key (public access)
+      if (response.status === 401 || response.status === 403) {
+        console.warn('Ghost API key may be required. Attempting public access...');
+        const publicUrl = `${GHOST_URL}/ghost/api/content/posts/slug/${slug}/?include=tags,authors`;
+        const publicResponse = await fetch(publicUrl);
+        
+        if (!publicResponse.ok) {
+          return null;
+        }
+        
+        const data: { posts: GhostPost[] } = await publicResponse.json();
+        if (data.posts && data.posts.length > 0) {
+          return transformGhostPosts(data.posts)[0];
+        }
+        return null;
+      }
+      
+      return null;
+    }
+    
+    const data: { posts: GhostPost[] } = await response.json();
+    if (data.posts && data.posts.length > 0) {
+      return transformGhostPosts(data.posts)[0];
+    }
+    return null;
+  } catch (error) {
+    console.error('Error fetching Ghost post:', error);
+    // Check if it's a network/CORS error
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      console.error('Failed to fetch from Ghost CMS. This may be a CORS issue or network error.');
+    }
+    return null;
+  }
 }
 
 /**
@@ -153,6 +208,7 @@ function transformGhostPosts(posts: GhostPost[]): BlogPost[] {
     return {
       id: post.id,
       title: post.title || 'Untitled',
+      slug: post.slug || '',
       description: description || 'No description available',
       image: image,
       url: postUrl,

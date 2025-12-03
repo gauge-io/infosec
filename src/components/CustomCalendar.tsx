@@ -1,17 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Calendar, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 import { fetchCalendarEvents, extractCalendarIdFromUrl } from '@/lib/google-calendar';
-import { generateTimeSlots, isDateValid, APPOINTMENT_RULES } from '@/lib/appointment-rules';
+import { generateTimeSlots, isDateValid } from '@/lib/appointment-rules';
 import { BookingForm } from './BookingForm';
 
 interface CustomCalendarProps {
   calendarUrl: string;
 }
 
-interface AppointmentSlot {
-  time: string;
-  available: boolean;
-}
 
 export function CustomCalendar({ calendarUrl }: CustomCalendarProps) {
   const [loading, setLoading] = useState(true);
@@ -22,7 +18,7 @@ export function CustomCalendar({ calendarUrl }: CustomCalendarProps) {
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [calendarId, setCalendarId] = useState<string | null>(null);
-  const [events, setEvents] = useState<Array<{ start: string; end: string }>>([]);
+  const [events, setEvents] = useState<Array<{ start: string; end: string; isAllDay?: boolean }>>([]);
   const [showBookingForm, setShowBookingForm] = useState(false);
 
   // Function to load events for a month and calculate available slots
@@ -197,11 +193,6 @@ export function CustomCalendar({ calendarUrl }: CustomCalendarProps) {
     return estimatedSlots.length;
   };
 
-  // Check if a date has booked events
-  const hasBookedEvents = (date: Date): boolean => {
-    const dateStr = date.toISOString().split('T')[0];
-    return events.some(event => event.start.startsWith(dateStr));
-  };
 
   // Navigate months
   const previousMonth = () => {
@@ -335,7 +326,7 @@ export function CustomCalendar({ calendarUrl }: CustomCalendarProps) {
       {loading && (
         <div className="flex items-center justify-center h-[600px] bg-gray-900 rounded-lg">
           <div className="text-center">
-            <Calendar className="w-12 h-12 text-gauge-coral-2 mx-auto mb-4 animate-pulse" />
+            <Calendar className="w-12 h-12 text-mango mx-auto mb-4 animate-pulse" />
             <p className="text-gray-400">Loading calendar...</p>
           </div>
         </div>
@@ -410,17 +401,17 @@ export function CustomCalendar({ calendarUrl }: CustomCalendarProps) {
                         ${isPast 
                           ? 'bg-gray-800 border-gray-700 text-gray-600 cursor-not-allowed' 
                           : isSelected
-                          ? 'bg-gauge-coral-2 border-gauge-coral-2 text-white'
-                          : 'bg-gray-800 border-gray-700 text-white hover:border-gauge-coral-2/50'
+                          ? 'bg-mango border-mango text-white'
+                          : 'bg-gray-800 border-gray-700 text-white hover:border-mango/50'
                         }
-                        ${isToday && !isSelected ? 'ring-2 ring-gauge-coral-2/50' : ''}
+                        ${isToday && !isSelected ? 'ring-2 ring-mango/50' : ''}
                       `}
                     >
                       <div className="flex flex-col items-center justify-center h-full">
                         <span className="text-sm font-sans font-semibold">{day.getDate()}</span>
                         {!isPast && (
                           slotsCount > 0 ? (
-                            <span className="text-xs text-gauge-coral-2 mt-1" title={`${slotsCount} available slot${slotsCount !== 1 ? 's' : ''}`}>
+                            <span className="text-xs text-mango mt-1" title={`${slotsCount} available slot${slotsCount !== 1 ? 's' : ''}`}>
                               {slotsCount}
                             </span>
                           ) : (
@@ -464,7 +455,7 @@ export function CustomCalendar({ calendarUrl }: CustomCalendarProps) {
                           <button
                             key={slot}
                             onClick={() => handleSlotClick(slot)}
-                            className="w-full p-3 bg-gray-900 hover:bg-gauge-coral-2 hover:text-white rounded-lg transition-colors text-left flex items-center gap-3 group"
+                            className="w-full p-3 bg-gray-900 hover:bg-mango hover:text-white rounded-lg transition-colors text-left flex items-center gap-3 group"
                           >
                             <Clock className="w-4 h-4 text-gray-400 group-hover:text-white" />
                             <span className="font-sans font-medium">{slot}</span>
@@ -494,11 +485,11 @@ export function CustomCalendar({ calendarUrl }: CustomCalendarProps) {
           {/* Legend */}
           <div className="mt-6 flex flex-wrap items-center gap-4 text-xs text-gray-400">
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded border-2 border-gauge-coral-2 bg-gauge-coral-2" />
+              <div className="w-4 h-4 rounded border-2 border-mango bg-mango" />
               <span>Selected</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded border-2 ring-2 ring-gauge-coral-2/50 border-gray-700 bg-gray-800" />
+              <div className="w-4 h-4 rounded border-2 ring-2 ring-mango/50 border-gray-700 bg-gray-800" />
               <span>Today</span>
             </div>
           </div>

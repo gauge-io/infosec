@@ -91,7 +91,7 @@ export function getRobotsContent(): string {
 /**
  * Update robots.txt file (for server-side usage)
  */
-export async function updateRobotsFile(filePath: string = './public/robots.txt'): Promise<void> {
+export async function updateRobotsFile(_filePath: string = './public/robots.txt'): Promise<void> {
   const content = generateRobotsContent();
   // In a real implementation, you would write to the file system
   // For now, this is a placeholder that can be called from a build script

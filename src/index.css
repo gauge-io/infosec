@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Line clamp utilities */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 @layer base {
   :root {
     /* Gauge.io inspired dark mode palette */
@@ -17,8 +32,8 @@
     --popover: 0 0% 11%;
     --popover-foreground: 0 0% 98%;
     
-    /* Primary - light blue for links and primary actions */
-    --primary: 200 100% 70%;
+    /* Primary - Mango (#D99A3D) for links, buttons, and primary actions */
+    --primary: 38 66% 54%;
     --primary-foreground: 0 0% 9%;
     
     /* Secondary - dark purple for header backgrounds */
@@ -31,7 +46,7 @@
     
     /* Accent colors - orange and pink for accent lines */
     --accent: 0 0% 15%;
-    --accent-foreground: 200 100% 70%;
+    --accent-foreground: 38 66% 54%;
     
     /* Destructive - red accent */
     --destructive: 0 72% 51%;
@@ -40,7 +55,7 @@
     /* Semantic colors */
     --success: 142 71% 45%;
     --warning: 38 92% 50%;
-    --info: 200 100% 70%;
+    --info: 200 100% 70%; /* Blue for informational messages only */
     
     /* Accent line colors */
     --accent-orange: 15 100% 60%;
@@ -49,7 +64,7 @@
     /* Borders and inputs */
     --border: 0 0% 20%;
     --input: 0 0% 20%;
-    --ring: 200 100% 70%;
+    --ring: 38 66% 54%; /* Mango for focus rings */
     
     /* Border radius */
     --radius: 0.5rem;
@@ -59,6 +74,9 @@
 @layer base {
   * {
     @apply border-border;
+  }
+  html {
+    zoom: 110%;
   }
   body {
     @apply bg-background text-foreground antialiased;
@@ -110,7 +128,30 @@
   }
   
   .prose a {
-    @apply text-primary hover:underline;
+    @apply text-primary;
+  }
+  
+  .prose a:hover {
+    @apply text-primary/80;
+  }
+  
+  /* Links - use Mango color, tint on hover (no underline) */
+  /* Exclude nav links which should be white */
+  a:not(.no-link-style):not(nav a):not(header a):not(footer a) {
+    @apply text-primary transition-colors;
+  }
+  
+  a:not(.no-link-style):not(nav a):not(header a):not(footer a):hover {
+    @apply text-primary/80;
+  }
+  
+  /* Nav links should be white - more specific to override global link styles */
+  header nav a,
+  header a:not(.no-link-style),
+  footer nav a,
+  footer button,
+  footer a:not(.no-link-style) {
+    @apply text-white !important;
   }
   
   .prose img {
@@ -135,5 +176,387 @@
   
   .prose pre {
     @apply bg-muted p-4 rounded-lg overflow-x-auto;
+  }
+  
+  /* Animated gradient background for CaseStudies */
+  @keyframes gradientShift {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+  
+  .animated-gradient {
+    animation: gradientShift 15s ease infinite;
+  }
+
+  /* Big Numbers styling - aggressive overrides */
+  .bigNumber.bigNumber-value {
+    font-size: 6em !important;
+    line-height: 1 !important;
+    margin-bottom: 0.75rem !important;
+    display: block !important;
+    font-weight: 600 !important;
+    font-family: var(--font-serif, 'IBM Plex Serif', serif) !important;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5) !important;
+  }
+
+  /* Drop shadow based on background color - darker version */
+  .bg-fuscia .bigNumber.bigNumber-value {
+    text-shadow: 0 2px 8px rgba(200, 50, 80, 0.8) !important;
+  }
+
+  .bg-mango .bigNumber.bigNumber-value {
+    text-shadow: 0 2px 8px rgba(180, 120, 30, 0.8) !important;
+  }
+
+  .bg-blue .bigNumber.bigNumber-value {
+    text-shadow: 0 2px 8px rgba(30, 150, 200, 0.8) !important;
+  }
+
+  .bg-purple .bigNumber.bigNumber-value {
+    text-shadow: 0 2px 8px rgba(80, 60, 120, 0.8) !important;
+  }
+
+  .bigNumber.bigNumber-label {
+    font-size: 1rem !important;
+    font-weight: 800 !important;
+    display: block !important;
+    font-family: inherit !important;
+    max-width: 20ch !important;
+  }
+
+  /* Article content styling - matching case study styles */
+  .article-content {
+    @apply font-sans text-gray-300 leading-relaxed;
+  }
+
+  /* Paragraphs - matching case study hero paragraph style */
+  .article-content p {
+    @apply mb-6;
+    font-size: 1.5rem;
+    line-height: 1.75;
+    color: #d1d5db;
+  }
+
+  @media (min-width: 768px) {
+    .article-content p {
+      font-size: 1.875rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .article-content p {
+      font-size: 1.875rem;
+    }
+  }
+
+  /* Headlines - matching case study headline style with serif */
+  .article-content h1 {
+    @apply font-serif font-bold;
+    font-size: 2.5rem;
+    line-height: 1.3;
+    color: #ffffff;
+    margin-top: 4rem;
+    margin-bottom: 2rem;
+  }
+
+  @media (min-width: 768px) {
+    .article-content h1 {
+      font-size: 3rem;
+      margin-top: 5rem;
+      margin-bottom: 2.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .article-content h1 {
+      font-size: 3.5rem;
+      margin-top: 6rem;
+      margin-bottom: 3rem;
+    }
+  }
+
+  .article-content h2 {
+    @apply font-serif font-semibold;
+    font-size: 2rem;
+    line-height: 1.3;
+    color: #ffffff;
+    margin-top: 3.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  @media (min-width: 768px) {
+    .article-content h2 {
+      font-size: 2.5rem;
+      margin-top: 4.5rem;
+      margin-bottom: 2rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .article-content h2 {
+      font-size: 3rem;
+      margin-top: 5.5rem;
+      margin-bottom: 2.5rem;
+    }
+  }
+
+  .article-content h3 {
+    @apply font-serif font-semibold;
+    font-size: 1.75rem;
+    line-height: 1.4;
+    color: #ffffff;
+    margin-top: 3rem;
+    margin-bottom: 1.25rem;
+  }
+
+  @media (min-width: 768px) {
+    .article-content h3 {
+      font-size: 2rem;
+      margin-top: 4rem;
+      margin-bottom: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .article-content h3 {
+      font-size: 2.25rem;
+      margin-top: 4.5rem;
+      margin-bottom: 1.75rem;
+    }
+  }
+
+  .article-content h4 {
+    @apply font-serif font-semibold;
+    font-size: 1.5rem;
+    line-height: 1.4;
+    color: #ffffff;
+    margin-top: 2.5rem;
+    margin-bottom: 1rem;
+  }
+
+  @media (min-width: 768px) {
+    .article-content h4 {
+      font-size: 1.75rem;
+      margin-top: 3rem;
+      margin-bottom: 1.25rem;
+    }
+  }
+
+  .article-content h5 {
+    @apply font-serif font-semibold;
+    font-size: 1.25rem;
+    line-height: 1.5;
+    color: #ffffff;
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .article-content h6 {
+    @apply font-serif font-semibold;
+    font-size: 1.125rem;
+    line-height: 1.5;
+    color: #ffffff;
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+  }
+
+  /* Bullet points and numeric lists - styled as paragraphs */
+  .article-content ul,
+  .article-content ol {
+    @apply mb-6;
+    line-height: 1.75;
+    font-size: 1.5rem;
+    color: #d1d5db;
+    margin-left: 2rem;
+    padding-left: 1rem;
+  }
+
+  @media (min-width: 768px) {
+    .article-content ul,
+    .article-content ol {
+      font-size: 1.875rem;
+      margin-left: 2.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .article-content ul,
+    .article-content ol {
+      font-size: 1.875rem;
+      margin-left: 3rem;
+    }
+  }
+
+  .article-content ul {
+    list-style-type: disc;
+    list-style-position: outside;
+  }
+
+  .article-content ul li::marker {
+    color: #D99A3D; /* Mango accent color */
+  }
+
+  .article-content ol {
+    list-style-type: decimal;
+    list-style-position: outside;
+  }
+
+  .article-content ol li::marker {
+    color: #D99A3D; /* Mango accent color */
+  }
+
+  .article-content li {
+    @apply mb-3;
+    line-height: 1.75;
+    padding-left: 0.5rem;
+  }
+
+  /* Pull quotes - matching case study pull quote style exactly */
+  .article-content blockquote,
+  .article-content .article-pullquote {
+    position: relative !important;
+    text-align: center !important;
+    padding: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    border: none !important;
+    max-width: 80rem !important; /* max-w-7xl equivalent */
+    margin-left: auto !important;
+    margin-right: auto !important;
+    margin-bottom: 6rem !important;
+    margin-top: 6rem !important;
+  }
+
+  @media (min-width: 768px) {
+    .article-content blockquote,
+    .article-content .article-pullquote {
+      margin-bottom: 8rem !important;
+      margin-top: 8rem !important;
+    }
+  }
+
+  .article-content blockquote p,
+  .article-content .article-pullquote p,
+  .article-content .article-pullquote-text {
+    font-family: 'IBM Plex Serif', serif !important;
+    font-style: italic !important;
+    color: #ffffff !important;
+    font-size: 3.5rem !important;
+    font-weight: 300 !important;
+    line-height: 1.5 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    position: relative !important;
+    z-index: 1 !important;
+  }
+
+  /* Pull quote smart quotes - matching case study exactly with aggressive styling */
+  .article-content blockquote p::before,
+  .article-content .article-pullquote p::before,
+  .article-content .article-pullquote-text::before {
+    content: '\201C' !important;
+    font-family: 'IBM Plex Serif', serif !important;
+    position: absolute !important;
+    font-size: 6rem !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+    z-index: 10 !important;
+    left: -0.8em !important;
+    top: 0 !important;
+    pointer-events: none !important;
+    color: #D99A3D !important; /* Mango accent color */
+  }
+
+  .article-content blockquote p::after,
+  .article-content .article-pullquote p::after,
+  .article-content .article-pullquote-text::after {
+    content: '\201D' !important;
+    font-family: 'IBM Plex Serif', serif !important;
+    position: absolute !important;
+    font-size: 6rem !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+    z-index: 10 !important;
+    right: -0.8em !important;
+    top: 0 !important;
+    pointer-events: none !important;
+    color: #D99A3D !important; /* Mango accent color */
+  }
+
+  /* Intro paragraphs - after title, before first headline */
+  /* Default: style all paragraphs normally */
+  .article-content p {
+    @apply mb-6;
+    font-style: normal;
+    background-color: transparent;
+    padding: 0;
+  }
+
+  /* Style paragraphs with the intro class (added via JS) */
+  .article-content p.article-intro-paragraph {
+    @apply italic px-6 py-4 rounded-lg mb-6;
+    font-style: italic !important;
+    background-color: hsl(var(--muted)) !important;
+  }
+
+  /* Links */
+  .article-content a {
+    @apply text-mango;
+  }
+
+  .article-content a:hover {
+    @apply text-mango/80;
+  }
+
+  /* Images - center aligned */
+  .article-content img {
+    @apply rounded-lg my-8;
+    display: block !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  /* Image captions - center aligned */
+  .article-content figcaption,
+  .article-content .kg-card-figcaption,
+  .article-content figure figcaption {
+    text-align: center !important;
+    font-size: 0.875rem !important;
+    color: #9ca3af !important;
+    margin-top: 0.5rem !important;
+    font-style: italic !important;
+  }
+
+  .article-content figure {
+    text-align: center !important;
+    margin: 2rem auto !important;
+  }
+
+  /* Pull quote section - 30% wider than article */
+  .article-pullquote-section {
+    width: 130% !important;
+    margin-left: -15% !important;
+    margin-right: -15% !important;
+  }
+
+  /* Code */
+  .article-content code {
+    @apply bg-gray-800 px-2 py-1 rounded text-sm font-mono;
+    color: #fbbf24;
+  }
+
+  .article-content pre {
+    @apply bg-gray-800 p-4 rounded-lg overflow-x-auto my-6;
+  }
+
+  .article-content pre code {
+    @apply bg-transparent p-0;
   }
 }

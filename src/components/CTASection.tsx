@@ -1,4 +1,3 @@
-import React from 'react';
 import { Shield, DollarSign, Server } from 'lucide-react';
 const industries = [{
   title: 'Information Security',
@@ -19,9 +18,9 @@ export function CTASection() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
           {industries.map((industry, index) => {
           const Icon = industry.icon;
-          return <div key={index} className="border border-gray-700 rounded-sm p-8 hover:border-gauge-coral-2 transition-colors cursor-pointer text-center">
+          return <div key={index} className="border border-gray-700 rounded-sm p-8 hover:border-mango transition-colors cursor-pointer text-center">
                 <div className="flex justify-center mb-4">
-                  <Icon className="w-12 h-12 text-gauge-coral-2" />
+                  <Icon className="w-12 h-12 text-mango" />
                 </div>
                 <h3 className="text-xl md:text-2xl font-serif font-semibold text-white mb-2">
                   {industry.title}

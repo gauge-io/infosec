@@ -1,3 +1,5 @@
+const colors = require('tailwindcss/colors')
+
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: ["class"],
@@ -18,6 +20,7 @@ export default {
     },
     extend: {
       colors: {
+        gray: colors.neutral,
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -66,15 +69,12 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Gauge.io colors from Magic Patterns
-        // Updated gauge-coral-2 (yellow/gold) for better contrast with white text
-        'gauge-coral': '#FF6B6B',
-        'gauge-coral-1': '#FF6B8A',
-        'gauge-coral-2': '#D99A3D', // Reduced brightness from #FFB84D for better white text contrast
-        'gauge-coral-3': '#4DD4FF',
-        'gauge-coral-4': '#FFAB6B',
-        'gauge-coral-5': '#FF4B6B',
-        'gauge-purple': '#6B5B95',
+        // Gauge.io brand colors
+        'salmon': '#FF6B6B',
+        'fuscia': '#FF6B8A',
+        'mango': '#D99A3D', // Primary color for links, buttons, and active states
+        'purple': '#6B5B95',
+        'blue': '#66ccff',
       },
       fontFamily: {
         sans: [
@@ -113,8 +113,8 @@ export default {
         '5xl': ['3rem', { lineHeight: '1' }],
       },
       boxShadow: {
-        'glow': '0 0 20px rgba(7, 182, 213, 0.15)',
-        'glow-lg': '0 0 30px rgba(7, 182, 213, 0.2)',
+        'glow': '0 0 20px rgba(217, 154, 61, 0.15)', // Mango glow
+        'glow-lg': '0 0 30px rgba(217, 154, 61, 0.2)', // Mango glow large
       },
       borderRadius: {
         lg: "var(--radius)",

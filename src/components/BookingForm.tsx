@@ -56,7 +56,7 @@ export function BookingForm({ date, time, onClose, onSuccess }: BookingFormProps
       const endDate = new Date(eventDate.getTime() + 60 * 60 * 1000); // 1 hour duration
 
       // Build description with notes if provided
-      let description = `Meeting with ${formData.name} (${formData.email})\n\nLocation: Under the clocktower of the Ferry Building, there are a set of stairs – go up these and take a left, all the way to the end, where there's a co-working spot called Shack 15. Ask for me at the desk.\n\nAddress: 1 Ferry Plaza, San Francisco, CA 94111, USA`;
+      let description = `Meeting with ${formData.name} (${formData.email})\n\nLocation: Under the clocktower of the Ferry Building, there are a set of stairs – go up these and take a left, all the way to the end, where there's a co-working spot called Shack 15. Ask for me at the desk.\n\nAddress: Shack 15 @ 1 Ferry Plaza #201, San Francisco, CA 94111, USA`;
       if (formData.notes.trim()) {
         description += `\n\nNotes from ${formData.name}:\n${formData.notes}`;
       }
@@ -70,7 +70,7 @@ export function BookingForm({ date, time, onClose, onSuccess }: BookingFormProps
         description,
         start: eventDate.toISOString(),
         end: endDate.toISOString(),
-        location: '1 Ferry Plaza, San Francisco, CA 94111, USA',
+        location: 'Shack 15 @ 1 Ferry Plaza #201, San Francisco, CA 94111, USA',
         attendees: [formData.email],
         notes: formData.notes ? formData.notes.trim() : '', // Pass coffee preference for email subject
       });
@@ -117,7 +117,7 @@ export function BookingForm({ date, time, onClose, onSuccess }: BookingFormProps
 
         <div className="mb-6 p-4 bg-gray-800 rounded-lg">
           <div className="flex items-center gap-3 text-white">
-            <Calendar className="w-5 h-5 text-gauge-coral-2" />
+            <Calendar className="w-5 h-5 text-mango" />
             <div>
               <p className="font-semibold">{dateStr}</p>
               <p className="text-sm text-gray-400">{time}</p>
@@ -128,7 +128,7 @@ export function BookingForm({ date, time, onClose, onSuccess }: BookingFormProps
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="name" className="block text-sm font-sans font-medium text-gray-300 mb-2">
-              Full name <span className="text-gauge-coral-2">*</span>
+              Full name <span className="text-mango">*</span>
             </label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -139,7 +139,7 @@ export function BookingForm({ date, time, onClose, onSuccess }: BookingFormProps
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-gauge-coral-2 transition-colors"
+                className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-mango transition-colors"
                 placeholder="Enter your full name"
               />
             </div>
@@ -147,7 +147,7 @@ export function BookingForm({ date, time, onClose, onSuccess }: BookingFormProps
 
           <div>
             <label htmlFor="email" className="block text-sm font-sans font-medium text-gray-300 mb-2">
-              Email address <span className="text-gauge-coral-2">*</span>
+              Email address <span className="text-mango">*</span>
             </label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -157,7 +157,7 @@ export function BookingForm({ date, time, onClose, onSuccess }: BookingFormProps
                 required
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-gauge-coral-2 transition-colors"
+                className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-mango transition-colors"
                 placeholder="Enter your email address"
               />
             </div>
@@ -174,7 +174,7 @@ export function BookingForm({ date, time, onClose, onSuccess }: BookingFormProps
                 id="notes"
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-gauge-coral-2 transition-colors"
+                className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-mango transition-colors"
                 placeholder="e.g., Iced Cafe Latte, Black Coffee, Cappuccino..."
               />
             </div>
@@ -220,7 +220,7 @@ export function BookingForm({ date, time, onClose, onSuccess }: BookingFormProps
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-3 bg-gauge-coral-2 hover:bg-gauge-coral-2/90 text-white font-sans font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-3 bg-mango hover:bg-mango/90 text-white font-sans font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Booking...' : 'Book Appointment'}
             </button>

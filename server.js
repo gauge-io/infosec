@@ -7,6 +7,11 @@ import { dirname, join } from 'path';
 import { readFileSync, existsSync } from 'fs';
 import nodemailer from 'nodemailer';
 import ical from 'ical-generator';
+import { request } from 'gaxios';
+import {
+  generateImagesForArticle,
+  processAllPostsNeedingImages,
+} from './lib/ghost-image-generator-server.js';
 
 // Load environment variables from .env.local first, then .env
 dotenv.config({ path: '.env.local' });
@@ -31,6 +36,7 @@ app.use(express.json());
 
 // Initialize Google Calendar API with service account
 let calendar;
+let meetAuth; // Separate auth for Meet API
 
 async function initializeCalendar() {
   try {
@@ -91,16 +97,59 @@ async function initializeCalendar() {
     }
 
     // Create JWT auth with service account credentials
+    // Note: For Google Meet link generation, you may need domain-wide delegation
+    // See GOOGLE_MEET_SETUP.md for setup instructions
     const auth = new google.auth.JWT({
       email: serviceAccount.client_email,
       key: serviceAccount.private_key,
-      scopes: ['https://www.googleapis.com/auth/calendar'],
+      scopes: [
+        'https://www.googleapis.com/auth/calendar',
+        'https://www.googleapis.com/auth/calendar.events'
+        // Meet API scope added separately if Meet API is available
+      ],
     });
 
     // Authorize and get access token
     await auth.authorize();
     
     calendar = google.calendar({ version: 'v3', auth });
+    
+    // Initialize Meet API auth (for direct REST API calls)
+    // The googleapis library may not have Meet API, so we'll use direct HTTP calls
+    try {
+      meetAuth = new google.auth.JWT({
+        email: serviceAccount.client_email,
+        key: serviceAccount.private_key,
+        scopes: [
+          'https://www.googleapis.com/auth/calendar',
+          'https://www.googleapis.com/auth/calendar.events',
+          'https://www.googleapis.com/auth/meetings.space.create'
+        ],
+      });
+      
+      // Don't test authorization here - getAccessToken() may try to validate scopes
+      // and fail if googleapis doesn't recognize the Meet API scope
+      // We'll test it when we actually need to make the API call
+      console.log('✓ Google Meet API auth object created');
+      console.log('  Service account:', serviceAccount.client_email);
+      console.log('  Scopes:', meetAuth.scopes);
+      console.log('  Auth will be tested when creating Meet spaces');
+    } catch (meetError) {
+      console.error('✗ Google Meet API auth initialization failed:');
+      console.error('  Error:', meetError.message);
+      console.error('  Stack:', meetError.stack);
+      if (meetError.response) {
+        console.error('  Response status:', meetError.response.status);
+        console.error('  Response data:', JSON.stringify(meetError.response.data, null, 2));
+      }
+      console.error('  Meet links will not be automatically generated for podcast meetings.');
+      console.error('  Please check:');
+      console.error('    1. Meet API is enabled in Google Cloud Console');
+      console.error('    2. Service account has meetings.space.create scope');
+      console.error('    3. Service account key is valid');
+      meetAuth = null;
+    }
+    
     console.log('Google Calendar API initialized successfully');
     console.log('Service account:', serviceAccount.client_email);
   } catch (error) {
@@ -114,6 +163,15 @@ app.get('/api/calendar/events', async (req, res) => {
   try {
     if (!calendar) {
       await initializeCalendar();
+    }
+    
+    // Ensure calendar is initialized
+    if (!calendar) {
+      return res.status(500).json({
+        success: false,
+        error: 'Calendar API not initialized. Check service account configuration.',
+        events: [],
+      });
     }
 
     const { calendarId, timeMin, timeMax } = req.query;
@@ -155,10 +213,26 @@ app.get('/api/calendar/events', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching calendar events:', error);
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      response: error.response?.data,
+      status: error.response?.status,
+    });
     
     let errorMessage = 'Failed to fetch calendar events';
-    if (error.response) {
-      errorMessage = error.response.data?.error?.message || errorMessage;
+    const requestedCalendarId = req.query.calendarId || 'nick@gauge.io';
+    
+    if (error.response?.data?.error) {
+      errorMessage = error.response.data.error.message || errorMessage;
+      // If authentication error, provide helpful message
+      if (error.response.data.error.message?.includes('authentication') || 
+          error.response.data.error.message?.includes('OAuth') ||
+          error.response.data.error.message?.includes('invalid authentication credentials')) {
+        const serviceAccountEmail = calendar?.context?._options?.auth?.email || 'gauge-io@calendar-integration-478723.iam.gserviceaccount.com';
+        errorMessage = `Authentication failed. The calendar "${requestedCalendarId}" must be shared with the service account "${serviceAccountEmail}". ` +
+          'Go to Google Calendar > Settings > Share with specific people and add the service account with "Make changes to events" permission.';
+      }
     } else if (error.message) {
       errorMessage = error.message;
     }
@@ -178,7 +252,7 @@ app.post('/api/calendar/create-event', async (req, res) => {
       await initializeCalendar();
     }
 
-    const { summary, description, start, end, location, attendees, calendarId, notes } = req.body;
+    const { summary, description, start, end, location, attendees, calendarId, notes, meetingType } = req.body;
 
     // Validate required fields
     if (!summary || !start || !end) {
@@ -198,7 +272,120 @@ app.post('/api/calendar/create-event', async (req, res) => {
       eventDescription += '\n\nNote: Please add these attendees manually to send calendar invites.';
     }
 
+    // For podcast meetings, create Google Meet link using Meet REST API
+    // Fallback approach: Create Meet space separately and add to event.location
+    // This avoids the "Invalid conference type value" error with conferenceData
+    let finalLocation = location || '';
+    
+    if (meetingType === 'podcast') {
+      console.log('=== PODCAST MEETING DETECTED ===');
+      console.log('Using Meet REST API to create Google Meet link');
+      console.log('Original location parameter:', location);
+      
+      if (!meetAuth) {
+        console.error('✗ Meet API auth not available - Meet link will not be generated');
+        console.error('Event will be created without Meet link');
+        finalLocation = location || '';
+      } else {
+        try {
+          console.log('Creating Google Meet space for podcast meeting...');
+          
+          // Get access token for Meet API
+          const accessToken = await meetAuth.getAccessToken();
+          console.log('✓ Access token obtained for Meet API');
+          console.log('Access token length:', accessToken.token ? accessToken.token.length : 'NO TOKEN');
+          
+          // Make direct HTTP call to Meet REST API
+          // API endpoint: https://meet.googleapis.com/v1/spaces
+          console.log('Calling Meet REST API: https://meet.googleapis.com/v1/spaces');
+          const meetResponse = await request({
+            method: 'POST',
+            url: 'https://meet.googleapis.com/v1/spaces',
+            headers: {
+              'Authorization': `Bearer ${accessToken.token}`,
+              'Content-Type': 'application/json',
+            },
+            data: {
+              config: {
+                accessType: 'OPEN',
+                entryPointAccess: 'CREATOR_APP_ONLY'
+              }
+            }
+          });
+          
+          console.log('Meet API response status:', meetResponse.status);
+          const meetData = meetResponse.data;
+          console.log('Meet API response data:', JSON.stringify(meetData, null, 2));
+          
+          // Extract Meet link from response
+          // According to Meet API docs, response should have: name, meetingUri, meetingCode, entryPoints
+          if (meetData && meetData.meetingUri) {
+            finalLocation = meetData.meetingUri;
+            console.log('✓ Google Meet space created with meetingUri:', finalLocation);
+          } else if (meetData && meetData.meetingCode) {
+            finalLocation = `https://meet.google.com/${meetData.meetingCode}`;
+            console.log('✓ Google Meet space created with meetingCode:', finalLocation);
+          } else if (meetData && meetData.name) {
+            // Extract meeting code from space name: "spaces/{meetingCode}"
+            const spaceName = meetData.name;
+            if (spaceName.startsWith('spaces/')) {
+              const meetingCode = spaceName.replace('spaces/', '');
+              finalLocation = `https://meet.google.com/${meetingCode}`;
+              console.log('✓ Google Meet space created from name:', finalLocation);
+            } else {
+              finalLocation = `https://meet.google.com/${spaceName}`;
+              console.log('✓ Google Meet space created from name (no prefix):', finalLocation);
+            }
+          } else if (meetData && Array.isArray(meetData.entryPoints) && meetData.entryPoints.length > 0) {
+            // Check entryPoints array for video entry point
+            const videoEntryPoint = meetData.entryPoints.find(ep => 
+              ep.entryPointType === 'video' || ep.entryPointType === 'VIDEO'
+            );
+            if (videoEntryPoint && videoEntryPoint.uri) {
+              finalLocation = videoEntryPoint.uri;
+              console.log('✓ Google Meet space created from entryPoints:', finalLocation);
+            } else {
+              const firstEntryPoint = meetData.entryPoints[0];
+              if (firstEntryPoint && firstEntryPoint.uri) {
+                finalLocation = firstEntryPoint.uri;
+                console.log('✓ Google Meet space created from first entryPoint:', finalLocation);
+              }
+            }
+          } else {
+            console.error('✗ Meet space created but no recognizable URI format found');
+            console.error('Response data:', JSON.stringify(meetData, null, 2));
+            finalLocation = location || '';
+          }
+          
+          console.log('=== FINAL LOCATION SET TO ===');
+          console.log('finalLocation:', finalLocation);
+        } catch (meetError) {
+          console.error('✗ Failed to create Google Meet space:');
+          console.error('  Error message:', meetError.message);
+          console.error('  Error stack:', meetError.stack);
+          if (meetError.response) {
+            console.error('  Response status:', meetError.response.status);
+            console.error('  Response statusText:', meetError.response.statusText);
+            console.error('  Response data:', JSON.stringify(meetError.response.data, null, 2));
+          }
+          console.error('Event will be created without Meet link');
+          finalLocation = location || '';
+        }
+      }
+    } else {
+      console.log('=== COFFEE MEETING DETECTED ===');
+      console.log('No Meet link needed for coffee meetings');
+    }
+
     // Create the calendar event
+    console.log('=== CREATING CALENDAR EVENT ===');
+    console.log('meetingType:', meetingType);
+    console.log('summary:', summary);
+    console.log('start:', start);
+    console.log('end:', end);
+    console.log('original location param:', location);
+    console.log('finalLocation (with Meet link if podcast):', finalLocation);
+    
     const event = {
       summary,
       description: eventDescription,
@@ -210,15 +397,144 @@ app.post('/api/calendar/create-event', async (req, res) => {
         dateTime: end,
         timeZone: 'America/Los_Angeles',
       },
-      location: location || '',
+      location: finalLocation || location || '',
       attendees: [], // Service accounts can't add attendees without Domain-Wide Delegation
       sendUpdates: 'none',
     };
+    
+    console.log('=== FULL EVENT OBJECT ===');
+    console.log(JSON.stringify(event, null, 2));
+    console.log('Event location field:', event.location);
+    console.log('Event location includes meet.google.com:', event.location ? event.location.includes('meet.google.com') : false);
 
-    const response = await calendar.events.insert({
+    let response;
+    try {
+      console.log('=== CALLING CALENDAR API ===');
+      console.log('calendarId:', calendarId || 'nick@gauge.io');
+      
+    // No conferenceData needed - Meet link is already in event.location
+    // IMPORTANT: Do NOT add conferenceData or conferenceDataVersion
+    const insertParams = {
       calendarId: calendarId || 'nick@gauge.io',
       requestBody: event,
-    });
+    };
+    
+    // Explicitly ensure no conferenceData is in the event
+    if (insertParams.requestBody.conferenceData) {
+      console.warn('⚠ WARNING: conferenceData found in event object - removing it');
+      delete insertParams.requestBody.conferenceData;
+    }
+    
+    console.log('=== API CALL PARAMETERS ===');
+    console.log('calendarId:', insertParams.calendarId);
+    console.log('requestBody.summary:', insertParams.requestBody.summary);
+    console.log('requestBody.location:', insertParams.requestBody.location);
+    console.log('requestBody.hasConferenceData:', !!insertParams.requestBody.conferenceData);
+    console.log('conferenceDataVersion:', 'NOT SET (should not be set)');
+    
+    console.log('=== MAKING CALENDAR API CALL ===');
+    console.log('Calling calendar.events.insert() - no conferenceData, Meet link in location field');
+    console.log('Event object keys:', Object.keys(insertParams.requestBody));
+    
+    response = await calendar.events.insert(insertParams);
+      
+      console.log('✓ Calendar API call completed successfully');
+      
+      console.log('=== CALENDAR EVENT CREATED ===');
+      console.log('Event ID:', response.data.id);
+      console.log('Event location in response:', response.data.location);
+      console.log('Event HTML link:', response.data.htmlLink);
+      
+      // Meet link is already in finalLocation (set before event creation via Meet REST API)
+      // Verify it's in the response
+      if (response.data.location && response.data.location.includes('meet.google.com')) {
+        console.log('✓ Google Meet link confirmed in event location:', response.data.location);
+        finalLocation = response.data.location;
+      } else if (finalLocation && finalLocation.includes('meet.google.com')) {
+        console.log('✓ Google Meet link was set before event creation:', finalLocation);
+        console.log('  Note: Response location may differ, but Meet link was created');
+      } else {
+        console.warn('⚠ No Meet link found in event location');
+        console.warn('  Response location:', response.data.location);
+        console.warn('  finalLocation:', finalLocation);
+      }
+      
+      console.log('=== FINAL LOCATION RESULT ===');
+      console.log('Final location:', finalLocation);
+      console.log('Final location includes meet.google.com:', finalLocation ? finalLocation.includes('meet.google.com') : false);
+    } catch (insertError) {
+      console.error('=== ERROR CREATING CALENDAR EVENT ===');
+      console.error('Error message:', insertError.message);
+      console.error('Error code:', insertError.code);
+      console.error('Error stack:', insertError.stack);
+      
+      if (insertError.response) {
+        console.error('Response status:', insertError.response.status);
+        console.error('Response statusText:', insertError.response.statusText);
+        console.error('Response headers:', JSON.stringify(insertError.response.headers, null, 2));
+        console.error('Response data:', JSON.stringify(insertError.response.data, null, 2));
+        
+        // Check for specific conference-related errors
+        if (insertError.response.data && insertError.response.data.error) {
+          const errorData = insertError.response.data.error;
+          console.error('Error details:', JSON.stringify(errorData, null, 2));
+          
+          if (errorData.message && (errorData.message.includes('conference') || errorData.message.includes('Invalid conference type'))) {
+            console.error('');
+            console.error('⚠ CONFERENCE-RELATED ERROR DETECTED');
+            console.error('Full error message:', errorData.message);
+            console.error('Error code:', errorData.code);
+            console.error('Error status:', errorData.status);
+            if (errorData.errors) {
+              console.error('Error details array:', JSON.stringify(errorData.errors, null, 2));
+            }
+            console.error('');
+            console.error('POSSIBLE CAUSES:');
+            console.error('  1. Calendar does NOT support "hangoutsMeet" in allowedConferenceSolutionTypes');
+            console.error('  2. Service account needs domain-wide delegation for conferenceData');
+            console.error('  3. Calendar owner account does not have Google Meet enabled');
+            console.error('  4. The conferenceSolutionKey.type value is not recognized by this calendar');
+            console.error('');
+            console.error('CHECK SERVER LOGS ABOVE for "CHECKING CALENDAR CONFERENCE PROPERTIES"');
+            console.error('This will show which conference types the calendar actually supports');
+            console.error('');
+            if (errorData.message.includes('Invalid conference type value')) {
+              console.error('=== SPECIFIC: Invalid conference type value ===');
+              console.error('This means the calendar rejected "hangoutsMeet" as a valid type');
+              console.error('SOLUTION: Check the calendar.conferenceProperties output above');
+              console.error('  If hangoutsMeet is NOT listed, we need to use Meet REST API instead');
+            }
+          }
+        }
+      } else if (insertError.request) {
+        console.error('Request was made but no response received');
+        console.error('Request details:', JSON.stringify(insertError.request, null, 2));
+      }
+      
+      throw insertError;
+    }
+    
+    // Log Meet link status for podcast meetings
+    if (meetingType === 'podcast') {
+      console.log('=== PODCAST MEETING SUMMARY ===');
+      console.log('finalLocation:', finalLocation);
+      console.log('response.data.location:', response.data.location);
+      if (finalLocation && finalLocation.includes('meet.google.com')) {
+        console.log('✓ Podcast meeting created with Google Meet link');
+        console.log('  Meet URL:', finalLocation);
+        console.log('  Location in calendar event:', response.data.location);
+        if (response.data.location !== finalLocation) {
+          console.warn('⚠ WARNING: Location mismatch!');
+          console.warn('  Expected:', finalLocation);
+          console.warn('  Actual:', response.data.location);
+        }
+      } else {
+        console.error('✗ Podcast meeting created but Meet link generation failed');
+        console.error('  finalLocation:', finalLocation);
+        console.error('  response.data.location:', response.data.location);
+        console.error('  Add Meet link manually in Google Calendar');
+      }
+    }
 
     console.log('Calendar event created:', response.data.id);
 
@@ -232,12 +548,13 @@ app.post('/api/calendar/create-event', async (req, res) => {
           description: description || '',
           start,
           end,
-          location: location || '',
+          location: finalLocation || location || '',
           attendees,
           organizerEmail: calendarId || 'nick@gauge.io',
           eventId: response.data.id,
           htmlLink: response.data.htmlLink,
           notes: (notes && typeof notes === 'string') ? notes.trim() : '', // Coffee preference for email subject
+          meetingType: meetingType || 'coffee', // 'coffee' or 'podcast'
         });
         console.log('✓ All calendar invites sent successfully');
       } catch (emailError) {
@@ -266,8 +583,16 @@ app.post('/api/calendar/create-event', async (req, res) => {
     console.error('Error stack:', error.stack);
     
     let errorMessage = 'Failed to create calendar event';
-    if (error.response) {
-      errorMessage = error.response.data?.error?.message || errorMessage;
+    if (error.response?.data?.error) {
+      errorMessage = error.response.data.error.message || errorMessage;
+      // If authentication error, provide helpful message
+      if (error.response.data.error.message?.includes('authentication') || 
+          error.response.data.error.message?.includes('OAuth') ||
+          error.response.data.error.message?.includes('invalid authentication credentials')) {
+        const serviceAccountEmail = calendar?.context?._options?.auth?.email || 'gauge-io@calendar-integration-478723.iam.gserviceaccount.com';
+        errorMessage = `Authentication failed. The calendar must be shared with the service account "${serviceAccountEmail}". ` +
+          'Go to Google Calendar > Settings > Share with specific people and add the service account with "Make changes to events" permission.';
+      }
     } else if (error.message) {
       errorMessage = error.message;
     }
@@ -309,7 +634,76 @@ async function sendCalendarInvites({
   eventId,
   htmlLink,
   notes = '',
+  meetingType = 'coffee',
 }) {
+  // Load images for email (use base64 for podcast header, external URLs for others to prevent clipping)
+  let coffeeShackImage = '';
+  let podcastHeaderImage = '';
+  let gaugeLogoImage = '';
+  
+  try {
+    // For podcast meetings, load the podcast header image
+    if (meetingType === 'podcast') {
+      // Try multiple possible paths for the podcast header image
+      const possiblePaths = [
+        join(__dirname, 'src', 'assets', 'podcast-header-email.jpg'),
+        join(process.cwd(), 'src', 'assets', 'podcast-header-email.jpg'),
+        join(__dirname, 'podcast-header-email.jpg'),
+      ];
+      
+      let podcastHeaderPath = null;
+      for (const path of possiblePaths) {
+        if (existsSync(path)) {
+          podcastHeaderPath = path;
+          console.log('✓ Found podcast header image at:', path);
+          break;
+        }
+      }
+      
+      if (podcastHeaderPath) {
+        try {
+          const podcastHeaderBuffer = readFileSync(podcastHeaderPath);
+          podcastHeaderImage = `data:image/jpeg;base64,${podcastHeaderBuffer.toString('base64')}`;
+          console.log('✓ Podcast header image loaded, size:', podcastHeaderBuffer.length, 'bytes');
+          console.log('  Base64 length:', podcastHeaderImage.length, 'characters');
+        } catch (readError) {
+          console.error('✗ Failed to read podcast header image:', readError.message);
+        }
+      } else {
+        console.error('✗ Podcast header image not found in any of these paths:');
+        possiblePaths.forEach(path => console.error('  -', path));
+        console.error('  Current __dirname:', __dirname);
+        console.error('  Current process.cwd():', process.cwd());
+      }
+    } else {
+      // For coffee meetings, use external URL if available, or load from file
+      const coffeeShackUrl = process.env.EMAIL_COFFEE_SHACK_IMAGE_URL;
+      if (coffeeShackUrl) {
+        coffeeShackImage = coffeeShackUrl;
+      } else {
+        const coffeeShackPath = join(__dirname, 'src', 'assets', 'coffee-shack.jpg');
+        if (existsSync(coffeeShackPath)) {
+          const coffeeShackBuffer = readFileSync(coffeeShackPath);
+          coffeeShackImage = `data:image/jpeg;base64,${coffeeShackBuffer.toString('base64')}`;
+        }
+      }
+    }
+    
+    // Gauge logo - use external URL if available
+    const gaugeLogoUrl = process.env.EMAIL_GAUGE_LOGO_IMAGE_URL;
+    if (gaugeLogoUrl) {
+      gaugeLogoImage = gaugeLogoUrl;
+    } else {
+      const gaugeLogoPath = join(__dirname, 'src', 'assets', 'gauge-logo.gif');
+      if (existsSync(gaugeLogoPath)) {
+        const gaugeLogoBuffer = readFileSync(gaugeLogoPath);
+        gaugeLogoImage = `data:image/gif;base64,${gaugeLogoBuffer.toString('base64')}`;
+      }
+    }
+  } catch (error) {
+    console.warn('Could not load images for email:', error.message);
+  }
+  
   // Configure SMTP transporter
   // Use environment variables for SMTP configuration
   const smtpConfig = {
@@ -379,10 +773,11 @@ async function sendCalendarInvites({
   // Generate email subject based on coffee preference
   const coffeePreference = notes && typeof notes === 'string' ? notes.trim() : '';
   
-  // Extract attendee name from description (format: "Meeting with Name (email)")
+  // Extract attendee name from description
   let attendeeName = 'Guest';
   if (description) {
-    const nameMatch = description.match(/Meeting with\s+([^(]+)\s*\(/);
+    // Try to match "Meeting with Name" or "Podcast Intro Meeting with Name"
+    const nameMatch = description.match(/(?:Meeting|Podcast Intro Meeting) with\s+([^(]+)\s*\(/);
     if (nameMatch && nameMatch[1]) {
       attendeeName = nameMatch[1].trim();
     } else if (attendees && attendees.length > 0) {
@@ -397,15 +792,21 @@ async function sendCalendarInvites({
     ).join(' ');
   }
   
-  // For organizer (nick@gauge.io), include attendee name and coffee preference
-  // For attendee, use the standard coffee subject
-  const organizerSubject = coffeePreference && coffeePreference.length > 0
-    ? `☕ ${coffeePreference} with ${attendeeName}`
-    : `☕ Coffee with ${attendeeName}`;
-  
-  const attendeeSubject = coffeePreference && coffeePreference.length > 0
-    ? `☕ ${coffeePreference} with Nick @ Gauge`
-    : `☕ Coffee with Nick @ Gauge`;
+  // Generate email subjects based on meeting type
+  let organizerSubject, attendeeSubject;
+  if (meetingType === 'podcast') {
+    organizerSubject = `🎙️ Podcast Intro Meeting with ${attendeeName}`;
+    attendeeSubject = `🎙️ Podcast Intro Meeting with Nick @ Gauge`;
+  } else {
+    // Coffee meeting subjects
+    organizerSubject = coffeePreference && coffeePreference.length > 0
+      ? `☕ ${coffeePreference} with ${attendeeName}`
+      : `☕ Coffee with ${attendeeName}`;
+    
+    attendeeSubject = coffeePreference && coffeePreference.length > 0
+      ? `☕ ${coffeePreference} with Nick @ Gauge`
+      : `☕ Coffee with Nick @ Gauge`;
+  }
 
   // Send invites to each recipient (attendees + organizer)
   const emailPromises = allRecipients.map(async (recipientEmail) => {
@@ -467,18 +868,24 @@ View in calendar: ${htmlLink}
     <tr>
       <td align="center" style="padding: 40px 20px;">
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; background-color: #000000;">
-          <!-- Header with border -->
+          <!-- Header with image -->
           <tr>
-            <td style="border-bottom: 5px solid #D99A3D; padding-bottom: 20px;">
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-                <tr>
-                  <td>
-                    <h1 style="margin: 0; font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 600; color: #ffffff; letter-spacing: 0.5px;">
-                      [ gauge ]
-                    </h1>
-                  </td>
-                </tr>
-              </table>
+            <td style="border-bottom: 5px solid #D99A3D; padding-bottom: 0;">
+              ${meetingType === 'podcast' && podcastHeaderImage ? `
+                <img src="${podcastHeaderImage}" alt="Podcast Header" style="display: block; width: 100%; max-width: 600px; height: auto; margin: 0; padding: 0;" />
+              ` : coffeeShackImage ? `
+                <img src="${coffeeShackImage}" alt="Coffee Shack" style="display: block; width: 100%; max-width: 600px; height: auto; margin: 0; padding: 0;" />
+              ` : `
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                  <tr>
+                    <td style="padding-bottom: 20px;">
+                      <h1 style="margin: 0; font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 600; color: #ffffff; letter-spacing: 0.5px;">
+                        [ gauge ]
+                      </h1>
+                    </td>
+                  </tr>
+                </table>
+              `}
             </td>
           </tr>
           
@@ -487,17 +894,17 @@ View in calendar: ${htmlLink}
             <td style="padding: 40px 0;">
               ${isOrganizer ? `
                 <h2 style="margin: 0 0 24px 0; font-family: 'IBM Plex Serif', Georgia, serif; font-size: 28px; font-weight: 600; color: #ffffff; line-height: 1.3;">
-                  New Appointment Booking
+                  ${meetingType === 'podcast' ? 'New Podcast Intro Meeting' : 'New Appointment Booking'}
                 </h2>
                 <p style="margin: 0 0 32px 0; font-family: 'IBM Plex Sans', Arial, sans-serif; font-size: 16px; line-height: 1.6; color: #e5e5e5;">
-                  You have a new coffee meeting scheduled:
+                  ${meetingType === 'podcast' ? 'You have a new podcast intro meeting scheduled:' : 'You have a new coffee meeting scheduled:'}
                 </p>
               ` : `
                 <h2 style="margin: 0 0 24px 0; font-family: 'IBM Plex Serif', Georgia, serif; font-size: 28px; font-weight: 600; color: #ffffff; line-height: 1.3;">
-                  Coffee Meeting Confirmed
+                  ${meetingType === 'podcast' ? 'Podcast Intro Meeting Confirmed' : 'Confirming Coffee, Chaos and Cuss Words'}
                 </h2>
                 <p style="margin: 0 0 32px 0; font-family: 'IBM Plex Sans', Arial, sans-serif; font-size: 16px; line-height: 1.6; color: #e5e5e5;">
-                  Your coffee meeting with Nick @ Gauge has been confirmed:
+                  ${meetingType === 'podcast' ? 'We\'re looking forward to our conversation and exploring potential podcast collaboration.' : 'We\'re looking forward to hosting you for a brief moment of caffeinated bliss.'}
                 </p>
               `}
               
@@ -517,13 +924,19 @@ View in calendar: ${htmlLink}
                     </p>
                     ${safeLocation ? `
                       <p style="margin: 0 0 16px 0; font-family: 'IBM Plex Sans', Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #b3b3b3;">
-                        <strong style="color: #ffffff;">Location:</strong><br>
-                        <span style="color: #e5e5e5;">${safeLocation}</span>
+                        <strong style="color: #ffffff;">${meetingType === 'podcast' ? 'Meeting Link:' : 'Location:'}</strong><br>
+                        ${meetingType === 'podcast' && safeLocation.includes('meet.google.com') ? `
+                          <a href="${safeLocation}" style="color: #D99A3D; text-decoration: none; word-break: break-all;">${safeLocation}</a>
+                        ` : meetingType === 'podcast' ? `
+                          <span style="color: #e5e5e5;">${safeLocation}</span>
+                        ` : `
+                          <span style="color: #e5e5e5;">${safeLocation}</span>
+                        `}
                       </p>
                     ` : ''}
                     ${safeCoffeePreference ? `
                       <p style="margin: 0; font-family: 'IBM Plex Sans', Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #b3b3b3;">
-                        <strong style="color: #ffffff;">Coffee Preference:</strong><br>
+                        <strong style="color: #ffffff;">${meetingType === 'podcast' ? 'Notes:' : 'Coffee Preference:'}</strong><br>
                         <span style="color: #e5e5e5;">${safeCoffeePreference}</span>
                       </p>
                     ` : ''}
@@ -555,9 +968,22 @@ View in calendar: ${htmlLink}
           <!-- Footer -->
           <tr>
             <td style="padding-top: 40px; border-top: 1px solid #333333;">
-              <p style="margin: 0; font-family: 'IBM Plex Sans', Arial, sans-serif; font-size: 12px; line-height: 1.6; color: #666666; text-align: center;">
-                This email was sent from <a href="https://gauge.io" style="color: #D99A3D; text-decoration: none;">gauge.io</a>
-              </p>
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                <tr>
+                  <td align="center" style="padding-bottom: 16px;">
+                    ${gaugeLogoImage ? `
+                      <img src="${gaugeLogoImage}" alt="Gauge Logo" style="display: block; max-width: 120px; height: auto; margin: 0 auto;" />
+                    ` : ''}
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <p style="margin: 0; font-family: 'IBM Plex Sans', Arial, sans-serif; font-size: 12px; line-height: 1.6; color: #666666; text-align: center;">
+                      This email was sent from <a href="https://gauge.io" style="color: #D99A3D; text-decoration: none;">gauge.io</a>
+                    </p>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
         </table>
@@ -681,6 +1107,73 @@ app.get('/api/test-smtp', async (req, res) => {
       error: error.message,
       code: error.code,
       command: error.command,
+    });
+  }
+});
+
+// Ghost Image Generation Endpoints
+
+// Generate images for a specific Ghost article
+app.post('/api/ghost/generate-images/:postId', async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const {
+      regenerateHeader = false,
+      regenerateBody = false,
+      maxBodyImages = 3,
+    } = req.body;
+
+    console.log(`Generating images for Ghost post: ${postId}`);
+    const result = await generateImagesForArticle(postId, {
+      regenerateHeader,
+      regenerateBody,
+      maxBodyImages,
+    });
+
+    res.json({
+      success: result.success,
+      postId: result.postId,
+      headerImageUrl: result.headerImageUrl,
+      bodyImageUrls: result.bodyImageUrls,
+      error: result.error,
+    });
+  } catch (error) {
+    console.error('Error generating images for Ghost article:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+    });
+  }
+});
+
+// Process all posts that need images
+app.post('/api/ghost/process-all-posts', async (req, res) => {
+  try {
+    const { onlyNewPosts = true, regenerateExisting = false } = req.body;
+
+    console.log('Processing all Ghost posts for image generation...');
+    const results = await processAllPostsNeedingImages({
+      onlyNewPosts,
+      regenerateExisting,
+    });
+
+    const successful = results.filter((r) => r.success).length;
+    const failed = results.filter((r) => !r.success).length;
+
+    res.json({
+      success: true,
+      total: results.length,
+      successful,
+      failed,
+      results,
+    });
+  } catch (error) {
+    console.error('Error processing Ghost posts:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
     });
   }
 });

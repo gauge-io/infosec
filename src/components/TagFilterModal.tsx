@@ -4,6 +4,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Link } from 'react-router-dom';
 import type { BlogPost } from '@/lib/ghost';
 import { getFuzzyTime } from '@/lib/fuzzy-time';
 
@@ -12,7 +13,6 @@ interface TagFilterModalProps {
   posts: BlogPost[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onPostClick: (post: BlogPost) => void;
 }
 
 export function TagFilterModal({
@@ -20,7 +20,6 @@ export function TagFilterModal({
   posts,
   open,
   onOpenChange,
-  onPostClick,
 }: TagFilterModalProps) {
   const filteredPosts = posts.filter((post) => post.tags.includes(tag));
 
@@ -37,11 +36,12 @@ export function TagFilterModal({
             <p className="text-muted-foreground">No articles found with this tag.</p>
           ) : (
             filteredPosts.map((post) => (
-              <div
+              <Link
                 key={post.id}
+                to={`/blog/${post.slug}`}
                 onClick={() => {
-                  onPostClick(post);
                   onOpenChange(false);
+                  window.scrollTo({ top: 0, behavior: 'instant' });
                 }}
                 className="flex gap-4 p-4 border border-border rounded-lg hover:border-primary/50 transition-colors cursor-pointer bg-card"
               >
@@ -65,7 +65,7 @@ export function TagFilterModal({
                     {post.description}
                   </p>
                 </div>
-              </div>
+              </Link>
             ))
           )}
         </div>

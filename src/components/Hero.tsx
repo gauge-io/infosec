@@ -1,6 +1,5 @@
-import React from 'react';
 export function Hero() {
-  return <section className="pt-32 pb-24 px-6 lg:px-12 border-b border-gauge-coral">
+  return <section className="pt-32 pb-24 px-6 lg:px-12 border-b border-salmon">
       <div className="max-w-7xl mx-auto">
         <h2 className="text-xs font-sans font-medium text-gray-400 mb-6 tracking-widest uppercase">
           NICK CAWTHON

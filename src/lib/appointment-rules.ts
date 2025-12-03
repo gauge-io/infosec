@@ -59,8 +59,9 @@ export function isDateValid(date: Date): { valid: boolean; reason?: string } {
 /**
  * Generate available time slots for a given date
  * Excludes times that don't meet the minimum hours before requirement
+ * @param duration - Duration in minutes (defaults to APPOINTMENT_RULES.duration)
  */
-export function generateTimeSlots(date: Date, busyTimes: Array<{ start: string; end: string; isAllDay?: boolean }>): string[] {
+export function generateTimeSlots(date: Date, busyTimes: Array<{ start: string; end: string; isAllDay?: boolean }>, duration?: number): string[] {
   const validation = isDateValid(date);
   if (!validation.valid) {
     return [];
@@ -83,21 +84,29 @@ export function generateTimeSlots(date: Date, busyTimes: Array<{ start: string; 
   const slots: string[] = [];
   const now = new Date();
   const minDateTime = new Date(now.getTime() + APPOINTMENT_RULES.minHoursBefore * 60 * 60 * 1000);
+  const appointmentDuration = duration || APPOINTMENT_RULES.duration;
+  
+  // For shorter durations (like 20 minutes), generate slots every 20 minutes
+  const slotInterval = appointmentDuration <= 30 ? appointmentDuration : 60;
   
   for (let hour = APPOINTMENT_RULES.startHour; hour < APPOINTMENT_RULES.endHour; hour++) {
-    const slotTime = `${hour.toString().padStart(2, '0')}:00`;
-    const slotDateTime = new Date(date);
-    slotDateTime.setHours(hour, 0, 0, 0);
-    
-    // Check minimum hours before requirement
-    if (slotDateTime < minDateTime) {
-      continue;
-    }
-    
-    // Check if slot conflicts with busy times
-    // Use local time for slot to match calendar timezone
-    const slotStart = new Date(slotDateTime);
-    const slotEnd = new Date(slotDateTime.getTime() + APPOINTMENT_RULES.duration * 60 * 1000);
+    // Generate slots based on interval
+    const intervalsPerHour = 60 / slotInterval;
+    for (let i = 0; i < intervalsPerHour; i++) {
+      const minutes = i * slotInterval;
+      const slotTime = `${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+      const slotDateTime = new Date(date);
+      slotDateTime.setHours(hour, minutes, 0, 0);
+      
+      // Check minimum hours before requirement
+      if (slotDateTime < minDateTime) {
+        continue;
+      }
+      
+      // Check if slot conflicts with busy times
+      // Use local time for slot to match calendar timezone
+      const slotStart = new Date(slotDateTime);
+      const slotEnd = new Date(slotDateTime.getTime() + appointmentDuration * 60 * 1000);
     
     const hasConflict = busyTimes.some(busy => {
       if (!busy.start || !busy.end) return false;
@@ -118,8 +127,9 @@ export function generateTimeSlots(date: Date, busyTimes: Array<{ start: string; 
       return overlaps;
     });
     
-    if (!hasConflict) {
-      slots.push(slotTime);
+      if (!hasConflict) {
+        slots.push(slotTime);
+      }
     }
   }
   

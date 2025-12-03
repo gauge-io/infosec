@@ -187,7 +187,7 @@ export async function getAvailableSlots(
   // - Appointment duration
   // - Available time windows (e.g., 9am-5pm)
   // - Buffer times between appointments
-  const freeBusy = await getFreeBusy(calendarInfo.id, timeMin, timeMax);
+  await getFreeBusy(calendarInfo.id, timeMin, timeMax);
 
   return {
     calendarId: calendarInfo.id,
@@ -329,6 +329,7 @@ export interface CreateEventParams {
   location?: string;
   attendees?: string[];
   notes?: string; // Coffee preference for email subject
+  meetingType?: 'coffee' | 'podcast'; // Type of meeting for email template
 }
 
 export interface CreateEventResult {

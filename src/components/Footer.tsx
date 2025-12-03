@@ -151,6 +151,7 @@ export function Footer() {
                   rel="noopener noreferrer"
                   className="text-gray-400 hover:text-mango transition-colors"
                   aria-label="Slack"
+                  style={{ marginTop: '-3px' }}
                 >
                   <SlackIcon className="w-6 h-6" />
                 </a>

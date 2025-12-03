@@ -17,8 +17,12 @@ const tools = [{
   image: dataNlp,
   icon: outcome2
 }];
-export function DataToolsSection() {
-  return <section className="relative pt-12 pb-6 px-6 lg:px-12 border-b border-gray-800 overflow-hidden">
+interface DataToolsSectionProps {
+  showTopBorder?: boolean;
+}
+
+export function DataToolsSection({ showTopBorder }: DataToolsSectionProps) {
+  return <section className={`relative pt-12 pb-6 px-6 lg:px-12 border-b border-gray-800 overflow-hidden ${showTopBorder ? 'border-t-[5px] border-fuscia' : ''}`}>
     {/* Animated Gradient Background */}
     <div
       className="absolute inset-0 animated-gradient z-0"

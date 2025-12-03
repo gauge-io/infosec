@@ -37,23 +37,7 @@ export function CaseStudies() {
 
       <main className="relative">
         {/* Hero Section with Animated Gradient Background */}
-        <section className="relative min-h-[30vh] flex items-center overflow-hidden pt-[10px]">
-          {/* Animated Background with Brand Colors */}
-          <div
-            className="absolute inset-0 animated-gradient z-0"
-            style={{
-              background: 'linear-gradient(135deg, #FF6B6B 0%, #FF6B8A 25%, #D99A3D 50%, #6B5B95 75%, #66ccff 100%)',
-              backgroundSize: '400% 400%',
-              animation: 'gradientShift 15s ease infinite'
-            }}
-          />
-          {/* Vignette overlay */}
-          <div
-            className="absolute inset-0 z-[2]"
-            style={{
-              background: 'radial-gradient(ellipse at center, transparent 0%, transparent 40%, rgba(0,0,0,0.6) 100%)'
-            }}
-          />
+        <section className="relative min-h-[30vh] flex items-center overflow-hidden pt-[10px]" style={{ backgroundColor: '#0d1520' }}>
 
           {/* Content */}
           <div className="relative z-[3] w-full px-6 lg:px-12">

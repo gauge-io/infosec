@@ -877,9 +877,6 @@ export function CaseStudyDetail() {
         </div>
       )}
 
-      {/* Gauge Does More with Data Section */}
-      <DataToolsSection />
-
       {/* Additional Case Studies Section */}
       <section className="pt-12 pb-12 px-6 lg:px-12 border-t-[5px] border-purple" style={{ backgroundColor: '#0d1520' }}>
         <div className="max-w-7xl mx-auto text-center">
@@ -943,6 +940,9 @@ export function CaseStudyDetail() {
           </div>
         </div>
       </section>
+
+      {/* Gauge Does More with Data Section */}
+      <DataToolsSection showTopBorder={true} />
 
       <Footer />
     </div >

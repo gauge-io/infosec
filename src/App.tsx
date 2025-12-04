@@ -9,6 +9,7 @@ import { CaseStudyDetail } from './pages/CaseStudyDetail';
 import { BlogPostDetail } from './pages/BlogPostDetail';
 import { BlogTagPage } from './pages/BlogTagPage';
 import { DesignSystem } from './pages/DesignSystem';
+import { About } from './pages/About';
 import { ServiceSliderProvider } from './contexts/ServiceSliderContext';
 import { ChatSliderProvider } from './contexts/ChatSliderContext';
 import { ChatSlider } from './components/ChatSlider';
@@ -29,6 +30,7 @@ function App() {
             <Route path="/blog/:slug" element={<BlogPostDetail />} />
             <Route path="/blog/tag/:tag" element={<BlogTagPage />} />
             <Route path="/design-system" element={<DesignSystem />} />
+            <Route path="/about" element={<About />} />
           </Routes>
           <ChatSlider />
         </BrowserRouter>

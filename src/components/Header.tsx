@@ -54,13 +54,13 @@ export function Header() {
               >
                 case studies
               </Link>
-              <a
-                href={getLink("#about")}
+              <Link
+                to="/about"
                 className="text-white hover:!text-mango transition-colors"
                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
               >
                 about
-              </a>
+              </Link>
               <a
                 href={getLink("#contact")}
                 className="text-white hover:!text-mango transition-colors"

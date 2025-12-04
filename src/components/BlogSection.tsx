@@ -17,9 +17,9 @@ export function BlogSection({ excludeSlug }: BlogSectionProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const itemsPerPage = 3;
   const carouselRef = useRef<HTMLDivElement>(null);
-  
+
   // Filter out excluded post
-  const filteredPosts = excludeSlug 
+  const filteredPosts = excludeSlug
     ? blogPosts.filter(post => post.slug !== excludeSlug)
     : blogPosts;
   const totalItems = filteredPosts.length;
@@ -181,27 +181,29 @@ export function BlogSection({ excludeSlug }: BlogSectionProps) {
                         />
                       </div>
                       <div className="p-8 text-center flex flex-col flex-grow">
-                        <div className="flex flex-wrap gap-2 justify-center mb-2">
-                          {post.tags && post.tags.length > 0 ? post.tags.map((tag, tagIndex) => (
-                            <TopicTag
-                              key={tagIndex}
-                              tag={tag}
-                              onClick={(e) => {
-                                e?.stopPropagation();
-                              }}
-                            />
-                          )) : null}
-                        </div>
                         <h3 className="text-xl md:text-2xl font-serif font-semibold text-white mb-3 group-hover:text-mango transition-colors">
                           {post.title}
                         </h3>
                         <p className="text-base md:text-lg font-sans text-gray-400 font-light leading-relaxed mb-4 flex-grow line-clamp-2">
                           {post.description.length > 90 ? post.description.substring(0, 87) + '...' : post.description}
                         </p>
-                        <div className="flex items-center justify-center gap-2 text-sm pt-4 border-t border-gray-700 mt-auto">
-                          <span style={{ color: '#9ca3af' }}>
-                            {post.fuzzyTime || post.date || 'Recently published'}
-                          </span>
+                        <div className="border-t border-gray-700 pt-4 mt-auto">
+                          <div className="flex flex-wrap gap-2 justify-center mb-3">
+                            {post.tags && post.tags.length > 0 ? post.tags.map((tag, tagIndex) => (
+                              <TopicTag
+                                key={tagIndex}
+                                tag={tag}
+                                onClick={(e) => {
+                                  e?.stopPropagation();
+                                }}
+                              />
+                            )) : null}
+                          </div>
+                          <div className="flex items-center justify-center gap-2 text-sm">
+                            <span style={{ color: '#9ca3af' }}>
+                              {post.fuzzyTime || post.date || 'Recently published'}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </Link>

@@ -36,27 +36,18 @@ export function CaseStudies() {
       <Header />
 
       <main className="relative">
-        {/* Hero Section with Animated Gradient Background */}
-        <section className="relative min-h-[30vh] flex items-center overflow-hidden pt-[10px]" style={{ backgroundColor: '#0d1520' }}>
-
-          {/* Content */}
-          <div className="relative z-[3] w-full px-6 lg:px-12">
-            <div className="max-w-7xl mx-auto">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-serif font-semibold text-white leading-tight !pt-3 !lg:pt-6 mb-2" style={{
-                textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)'
-              }}>
-                Case Studies
-              </h1>
-              <p className="text-xl md:text-2xl font-sans text-white font-medium max-w-3xl ml-2 md:ml-4" style={{
-                textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)'
-              }}>
-                Gauge serves as your Humans in the Loop, helping you craft a new commmon sense.
-              </p>
-            </div>
+        {/* Hero Section with Dark Grey Background and Purple Border */}
+        <section className="relative pt-48 pb-32 px-6 lg:px-12 text-center" style={{ backgroundColor: '#0d1520' }}>
+          <div className="max-w-5xl mx-auto">
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-serif font-semibold tracking-tight mb-10 text-white">
+              Case Studies
+            </h1>
+            <p className="text-2xl md:text-3xl text-white/80 font-light leading-relaxed max-w-4xl mx-auto">
+              Gauge serves as your Humans in the Loop, helping you craft a new common sense.
+            </p>
           </div>
-
-          {/* Bottom Border - 5px Blue */}
-          <div className="absolute bottom-0 left-0 right-0 h-[5px] bg-blue" />
+          {/* Purple Bottom Border */}
+          <div className="absolute bottom-0 left-0 right-0 h-[5px] bg-purple" />
         </section>
 
         {/* Main Content Sections */}
@@ -181,11 +172,11 @@ export function CaseStudies() {
                                   <div className="mb-0" style={{ marginTop: '0', paddingTop: '0' }}>
                                     {getCaseStudyLogo(study.title) && (
                                       <div className="mb-4 flex justify-start">
-                                        <img 
-                                          src={getCaseStudyLogo(study.title)!} 
-                                          alt="" 
+                                        <img
+                                          src={getCaseStudyLogo(study.title)!}
+                                          alt=""
                                           className="w-auto"
-                                          style={{ 
+                                          style={{
                                             filter: 'brightness(0) invert(1)',
                                             height: getLogoStyles().height,
                                             marginLeft: getLogoStyles().marginLeft || '0'
@@ -271,11 +262,11 @@ export function CaseStudies() {
                                   <div className="mb-0" style={{ marginTop: '0', paddingTop: '0' }}>
                                     {getCaseStudyLogo(study.title) && (
                                       <div className="mb-4 flex justify-start">
-                                        <img 
-                                          src={getCaseStudyLogo(study.title)!} 
-                                          alt="" 
+                                        <img
+                                          src={getCaseStudyLogo(study.title)!}
+                                          alt=""
                                           className="w-auto"
-                                          style={{ 
+                                          style={{
                                             filter: 'brightness(0) invert(1)',
                                             height: getLogoStyles().height,
                                             marginLeft: getLogoStyles().marginLeft || '0'
@@ -319,11 +310,11 @@ export function CaseStudies() {
                                   <div className="mb-0" style={{ marginTop: '0', paddingTop: '0' }}>
                                     {getCaseStudyLogo(study.title) && (
                                       <div className="mb-4 flex justify-start">
-                                        <img 
-                                          src={getCaseStudyLogo(study.title)!} 
-                                          alt="" 
+                                        <img
+                                          src={getCaseStudyLogo(study.title)!}
+                                          alt=""
                                           className="w-auto"
-                                          style={{ 
+                                          style={{
                                             filter: 'brightness(0) invert(1)',
                                             height: getLogoStyles().height,
                                             marginLeft: getLogoStyles().marginLeft || '0'

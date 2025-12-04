@@ -87,78 +87,49 @@ export function Principles() {
   return (
     <div className="min-h-screen bg-black text-white font-sans selection:bg-fuscia selection:text-white">
       <Header />
-      
-      <main className="relative">
-        {/* Hero Section with Animated Gradient Background */}
-        <section className="relative min-h-[60vh] flex items-center overflow-hidden">
-          {/* Animated Background with Brand Colors */}
-          <div 
-            className="absolute inset-0 animated-gradient z-0"
-            style={{
-              background: 'linear-gradient(135deg, #FF6B6B 0%, #FF6B8A 25%, #D99A3D 50%, #6B5B95 75%, #66ccff 100%)',
-              backgroundSize: '400% 400%',
-              animation: 'gradientShift 15s ease infinite'
-            }}
-          />
-          {/* Black Oval Vignette - between gradient and diagram */}
-          <div 
-            className="absolute inset-0 z-[1] pointer-events-none" 
-            style={{
-              background: 'radial-gradient(ellipse 80% 60% at center, transparent 30%, rgba(0,0,0,0.3) 100%)'
-            }} 
-          />
-          {/* Vignette overlay */}
-          <div 
-            className="absolute inset-0 z-[2]" 
-            style={{
-              background: 'radial-gradient(ellipse at center, transparent 0%, transparent 40%, rgba(0,0,0,0.6) 100%)'
-            }} 
-          />
 
-          {/* Content */}
-          <div className="relative z-[3] w-full px-6 lg:px-12">
-            <div className="max-w-7xl mx-auto">
-              <h1 className="text-4xl md:text-4xl lg:text-5xl xl:text-6xl font-serif font-semibold text-white leading-tight pt-20 lg:pt-28" style={{
-                textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)'
-              }}>
-                Our Principles
-              </h1>
-              
-              {/* SVG - Center Aligned */}
+      <main className="relative">
+        {/* Hero Section with Dark Grey Background and Salmon Border */}
+        <section className="relative pt-48 pb-24 px-6 lg:px-12 text-center" style={{ backgroundColor: '#0d1520' }}>
+          <div className="max-w-5xl mx-auto">
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-serif font-semibold tracking-tight mb-10 text-white">
+              Our Principles
+            </h1>
+
+            {/* SVG - Break out of column bounds with dramatically increased width */}
+            <div className="relative -mx-6 lg:-mx-12 mb-8 overflow-hidden">
               <div className="flex justify-center">
-                <img 
-                  src={doubleDiamonds} 
+                <img
+                  src={doubleDiamonds}
                   alt="Double Diamond Design Process"
                   className="w-full h-auto"
+                  style={{ maxWidth: '300%' }}
                 />
               </div>
-
-              {/* Attribution Text */}
-              <div className="text-center pb-8">
-                <p className="text-xs text-gray-400">
-                  Double Diamond User Centric Design process, courtesy of the{' '}
-                  <a 
-                    href="https://www.designcouncil.org.uk/our-resources/the-double-diamond/" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-gray-300 hover:text-white underline"
-                  >
-                    British Design Council
-                  </a>
-                  {' '}– 2005
-                </p>
-              </div>
             </div>
-          </div>
 
-          {/* Bottom Border - 5px Salmon */}
+            {/* Attribution Text */}
+            <p className="text-sm text-white/60 font-light">
+              Double Diamond User Centric Design process, courtesy of the{' '}
+              <a
+                href="https://www.designcouncil.org.uk/our-resources/the-double-diamond/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white/80 hover:text-white underline"
+              >
+                British Design Council
+              </a>
+              {' '}– 2005
+            </p>
+          </div>
+          {/* Salmon Bottom Border */}
           <div className="absolute bottom-0 left-0 right-0 h-[5px] bg-salmon" />
         </section>
 
         {/* Main Content Sections */}
         <div className="relative pt-24 pb-24 overflow-hidden">
           {/* Animated Gradient Background */}
-          <div 
+          <div
             className="absolute inset-0 animated-gradient z-0"
             style={{
               background: 'linear-gradient(135deg, #FF6B6B 0%, #FF6B8A 25%, #D99A3D 50%, #6B5B95 75%, #66ccff 100%)',
@@ -167,14 +138,14 @@ export function Principles() {
             }}
           />
           {/* Black Fill Layer - 87.5% opacity between gradient and PNGs */}
-          <div 
+          <div
             className="absolute inset-0 z-[1]"
             style={{
               backgroundColor: 'rgba(0, 0, 0, 0.875)'
             }}
           />
           {/* Top Image with Screen Blend - white lines show colors through */}
-          <div 
+          <div
             className="absolute z-[2]"
             style={{
               top: 0,
@@ -184,8 +155,8 @@ export function Principles() {
               width: '100%'
             }}
           >
-            <img 
-              src={gaugeBgInvTop} 
+            <img
+              src={gaugeBgInvTop}
               alt=""
               className="w-full h-full object-cover"
               style={{
@@ -196,7 +167,7 @@ export function Principles() {
             />
           </div>
           {/* Bottom Image with Screen Blend - white lines show colors through, bottom justified */}
-          <div 
+          <div
             className="absolute z-[2]"
             style={{
               bottom: 0,
@@ -206,8 +177,8 @@ export function Principles() {
               width: '100%'
             }}
           >
-            <img 
-              src={gaugeBgInvBottom} 
+            <img
+              src={gaugeBgInvBottom}
               alt=""
               className="w-full h-full object-cover"
               style={{
@@ -218,98 +189,98 @@ export function Principles() {
             />
           </div>
           <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-12 space-y-32">
-              {/* Section 1: User Experience - Left Aligned */}
-              <section>
-                  <div className="w-full flex justify-start">
-                      <div className="w-full lg:w-[75%]">
-                          <div className="border-l-4 border-fuscia pl-8 mb-12">
-                              <h2 className="text-4xl md:text-5xl font-serif font-bold text-white mb-6">
-                                  User Experience
-                              </h2>
-                              <p className="text-xl text-gray-300 font-light max-w-3xl">
-                                De-risk your application launch by focusing on user-centered design principles that drive engagement and conversion.
-                              </p>
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                              {userExperienceOutcomes.map((item, idx) => (
-                                  <div key={idx} className="bg-white/5 p-8 rounded-sm border-t-2 border-white/10">
-                                      <div className="mb-6">
-                                          <img 
-                                              src={item.icon} 
-                                              alt={item.title}
-                                              className="w-16 h-16 object-contain"
-                                          />
-                                      </div>
-                                      <h3 className="text-2xl font-serif font-semibold text-white mb-4">{item.title}</h3>
-                                      <p className="text-gray-300 leading-relaxed font-medium text-xl">{item.description}</p>
-                                  </div>
-                              ))}
-                          </div>
-                      </div>
+            {/* Section 1: User Experience - Left Aligned */}
+            <section>
+              <div className="w-full flex justify-start">
+                <div className="w-full lg:w-[75%]">
+                  <div className="border-l-4 border-fuscia pl-8 mb-12">
+                    <h2 className="text-4xl md:text-5xl font-serif font-bold text-white mb-6">
+                      User Experience
+                    </h2>
+                    <p className="text-xl text-gray-300 font-light max-w-3xl">
+                      De-risk your application launch by focusing on user-centered design principles that drive engagement and conversion.
+                    </p>
                   </div>
-              </section>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {userExperienceOutcomes.map((item, idx) => (
+                      <div key={idx} className="bg-white/5 p-8 rounded-sm border-t-2 border-white/10">
+                        <div className="mb-6">
+                          <img
+                            src={item.icon}
+                            alt={item.title}
+                            className="w-16 h-16 object-contain"
+                          />
+                        </div>
+                        <h3 className="text-2xl font-serif font-semibold text-white mb-4">{item.title}</h3>
+                        <p className="text-gray-300 leading-relaxed font-medium text-xl">{item.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
 
-              {/* Section 2: Development & Engineering - Right Aligned */}
-              <section>
-                  <div className="w-full flex justify-end">
-                      <div className="w-full lg:w-[75%]">
-                          <div className="border-l-4 border-mango pl-8 mb-12">
-                              <h2 className="text-4xl md:text-5xl font-serif font-bold text-white mb-6">
-                                  Development & Engineering
-                              </h2>
-                              <p className="text-xl text-gray-300 font-light max-w-3xl">
-                                Streamline your development lifecycle and align your team with clear, validated design requirements.
-                              </p>
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                              {developmentOutcomes.map((item, idx) => (
-                                  <div key={idx} className="bg-white/5 p-8 rounded-sm border-t-2 border-white/10">
-                                      <div className="mb-6">
-                                          <img 
-                                              src={item.icon} 
-                                              alt={item.title}
-                                              className="w-16 h-16 object-contain"
-                                          />
-                                      </div>
-                                      <h3 className="text-2xl font-serif font-semibold text-white mb-4">{item.title}</h3>
-                                      <p className="text-gray-300 leading-relaxed font-medium text-xl">{item.description}</p>
-                                  </div>
-                              ))}
-                          </div>
-                      </div>
+            {/* Section 2: Development & Engineering - Right Aligned */}
+            <section>
+              <div className="w-full flex justify-end">
+                <div className="w-full lg:w-[75%]">
+                  <div className="border-l-4 border-mango pl-8 mb-12">
+                    <h2 className="text-4xl md:text-5xl font-serif font-bold text-white mb-6">
+                      Development & Engineering
+                    </h2>
+                    <p className="text-xl text-gray-300 font-light max-w-3xl">
+                      Streamline your development lifecycle and align your team with clear, validated design requirements.
+                    </p>
                   </div>
-              </section>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {developmentOutcomes.map((item, idx) => (
+                      <div key={idx} className="bg-white/5 p-8 rounded-sm border-t-2 border-white/10">
+                        <div className="mb-6">
+                          <img
+                            src={item.icon}
+                            alt={item.title}
+                            className="w-16 h-16 object-contain"
+                          />
+                        </div>
+                        <h3 className="text-2xl font-serif font-semibold text-white mb-4">{item.title}</h3>
+                        <p className="text-gray-300 leading-relaxed font-medium text-xl">{item.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
 
-              {/* Section 3: Organizational & Business - Left Aligned */}
-              <section>
-                  <div className="w-full flex justify-start">
-                      <div className="w-full lg:w-[75%]">
-                          <div className="border-l-4 border-blue pl-8 mb-12">
-                              <h2 className="text-4xl md:text-5xl font-serif font-bold text-white mb-6">
-                                  Organizational & Business
-                              </h2>
-                              <p className="text-xl text-gray-300 font-light max-w-3xl">
-                                Build stronger teams and reduce operational overhead through better alignment and clearer communication.
-                              </p>
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                              {organizationalOutcomes.map((item, idx) => (
-                                  <div key={idx} className="bg-white/5 p-8 rounded-sm border-t-2 border-white/10">
-                                      <div className="mb-6">
-                                          <img 
-                                              src={item.icon} 
-                                              alt={item.title}
-                                              className="w-16 h-16 object-contain"
-                                          />
-                                      </div>
-                                      <h3 className="text-2xl font-serif font-semibold text-white mb-4">{item.title}</h3>
-                                      <p className="text-gray-300 leading-relaxed font-medium text-xl">{item.description}</p>
-                                  </div>
-                              ))}
-                          </div>
-                      </div>
+            {/* Section 3: Organizational & Business - Left Aligned */}
+            <section>
+              <div className="w-full flex justify-start">
+                <div className="w-full lg:w-[75%]">
+                  <div className="border-l-4 border-blue pl-8 mb-12">
+                    <h2 className="text-4xl md:text-5xl font-serif font-bold text-white mb-6">
+                      Organizational & Business
+                    </h2>
+                    <p className="text-xl text-gray-300 font-light max-w-3xl">
+                      Build stronger teams and reduce operational overhead through better alignment and clearer communication.
+                    </p>
                   </div>
-              </section>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {organizationalOutcomes.map((item, idx) => (
+                      <div key={idx} className="bg-white/5 p-8 rounded-sm border-t-2 border-white/10">
+                        <div className="mb-6">
+                          <img
+                            src={item.icon}
+                            alt={item.title}
+                            className="w-16 h-16 object-contain"
+                          />
+                        </div>
+                        <h3 className="text-2xl font-serif font-semibold text-white mb-4">{item.title}</h3>
+                        <p className="text-gray-300 leading-relaxed font-medium text-xl">{item.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
           </div>
         </div>
       </main>

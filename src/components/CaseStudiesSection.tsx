@@ -36,7 +36,7 @@ const getLogoStyles = (title: string): { height: string; marginLeft?: string } =
 
 export function CaseStudiesSection() {
   return (
-    <section className="relative pt-12 pb-24 px-6 lg:px-12 bg-black border-b-[5px] border-blue">
+    <section className="relative pt-12 pb-24 px-6 lg:px-12 bg-black border-t-[5px] border-mango border-b-[5px] border-blue">
       <div className="max-w-7xl mx-auto relative z-10">
         <h2 className="text-3xl md:text-4xl font-serif font-semibold text-white mb-16 text-center">
           Case Studies
@@ -64,11 +64,11 @@ export function CaseStudiesSection() {
               <div className="flex flex-col flex-1 text-center">
                 {getCaseStudyLogo(study.title) && (
                   <div className="mb-4 flex justify-center">
-                    <img 
-                      src={getCaseStudyLogo(study.title)!} 
-                      alt="" 
+                    <img
+                      src={getCaseStudyLogo(study.title)!}
+                      alt=""
                       className="w-auto"
-                      style={{ 
+                      style={{
                         filter: 'brightness(0) invert(1)',
                         height: getLogoStyles(study.title).height,
                         marginLeft: getLogoStyles(study.title).marginLeft || '0'

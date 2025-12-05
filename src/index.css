@@ -590,7 +590,63 @@
   border-left-color: #1a1a2e !important;
 }
 
-/* Team marker hover effect */
+/* Mapbox Container - Ensure proper filling */
+.mapboxgl-map {
+  position: relative !important;
+}
+
+.mapboxgl-canvas-container {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.mapboxgl-canvas {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Mapbox Navigation Controls - Black background with white icons */
+.mapboxgl-ctrl-group {
+  background: #000000 !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 4px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+}
+
+.mapboxgl-ctrl-group button {
+  background-color: #000000 !important;
+  border: none !important;
+}
+
+.mapboxgl-ctrl-group button:hover {
+  background-color: #1a1a1a !important;
+}
+
+.mapboxgl-ctrl-group button + button {
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Invert the zoom icons to white */
+.mapboxgl-ctrl-icon {
+  filter: invert(1) !important;
+}
+
+/* Team marker node - solid color transitions (handled by JS) */
+/* Don't add any positioning CSS - Mapbox handles this via transform */
+.team-marker-node {
+  transition: background-color 2s ease, box-shadow 2s ease;
+  /* Let Mapbox handle all positioning - no position, transform, margin, etc. */
+}
+
+.team-marker-node:hover {
+  /* No transform on hover - just show popup */
+}
+
+/* Legacy team marker hover effect */
 .team-marker {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }

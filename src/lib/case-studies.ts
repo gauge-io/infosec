@@ -163,14 +163,14 @@ export const caseStudies: CaseStudy[] = [
         content: "...seeing the broader picture helps all parties understand problems on a number of different levels..."
       },
       {
-        title: "Unique to B2B Environments",
-        content: "There exists a different mentality for applications that are used solely within technical business environments. Artifacts of the terminal commands are still prevalent, with keyboard shortcuts and navigation being commonplace, removing animation and subtleties that may slow down time on task. Consumer elements of virality and aesthetic are removed in favor of efficiency and effectiveness.",
-        imagePosition: 'right'
-      },
-      {
         title: "Mapping a Shared Journey",
         content: "Seeing the broader picture helps all parties understand problems on a number of different levels, from the individual user experience to the organizational workflow dynamics. Gauge effectively maps a shared journey, complete with legal and system constraints, regulatory requirements, and cross-functional dependencies, in order to better design the service and all of its touch points for internal teams. This comprehensive mapping process ensures that every stakeholder, from end users to system administrators, can visualize and understand how their roles intersect within the larger operational ecosystem.",
         image: internalTools5Thumb,
+        imagePosition: 'right'
+      },
+      {
+        title: "Unique to B2B Environments",
+        content: "There exists a different mentality for applications that are used solely within technical business environments. Artifacts of the terminal commands are still prevalent, with keyboard shortcuts and navigation being commonplace, removing animation and subtleties that may slow down time on task. Consumer elements of virality and aesthetic are removed in favor of efficiency and effectiveness.",
         imagePosition: 'right'
       }
     ]
